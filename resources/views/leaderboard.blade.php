@@ -161,7 +161,7 @@
 </head>
 <body class="antialiased">
 
-    <div class="min-h-screen py-6 px-4 sm:px-6 lg:px-8">
+    <div class="min-h-screen py-6 px-2 sm:px-6 lg:px-8">
         <div class="max-w-3xl mx-auto">
 
             {{-- Top Action Bar --}}
@@ -191,7 +191,7 @@
                     </div>
                 </div>
 
-                <div class="p-6 sm:p-10 relative">
+                <div class="p-3 sm:p-10 relative">
 
                 {{-- Decorative corner stars --}}
                 <div class="star-decoration top-4 right-4 text-2xl sparkle">✦</div>
@@ -260,15 +260,15 @@
                             $initials = mb_substr($rank['student_name'], 0, 2);
                         @endphp
 
-                        <div class="rank-card {{ $cardClass }} rounded-2xl p-4 sm:p-5 flex items-center gap-4"
+                        <div class="rank-card {{ $cardClass }} rounded-2xl p-3 sm:p-5 flex items-center gap-2 sm:gap-4"
                              style="animation-delay: {{ $index * 0.05 }}s">
 
                             {{-- Rank Number / Medal --}}
-                            <div class="flex-shrink-0 w-10 text-center">
+                            <div class="flex-shrink-0 w-8 sm:w-10 text-center">
                                 @if($medal)
-                                    <span class="text-2xl {{ $position === 1 ? 'float-animation' : '' }}">{{ $medal }}</span>
+                                    <span class="text-xl sm:text-2xl {{ $position === 1 ? 'float-animation' : '' }}">{{ $medal }}</span>
                                 @else
-                                    <span class="text-lg font-black text-white/40">#{{ $position }}</span>
+                                    <span class="text-base sm:text-lg font-black text-white/40">#{{ $position }}</span>
                                 @endif
                             </div>
 
@@ -277,9 +277,9 @@
                                 @if($rank['profile_image'])
                                     <img src="{{ asset('storage/' . $rank['profile_image']) }}"
                                          alt="{{ $rank['student_name'] }}"
-                                         class="w-12 h-12 sm:w-14 sm:h-14 rounded-full object-cover {{ $avatarRing }}">
+                                         class="w-10 h-10 sm:w-14 sm:h-14 rounded-full object-cover {{ $avatarRing }}">
                                 @else
-                                    <div class="w-12 h-12 sm:w-14 sm:h-14 rounded-full flex items-center justify-center text-lg font-bold {{ $avatarRing }}"
+                                    <div class="w-10 h-10 sm:w-14 sm:h-14 rounded-full flex items-center justify-center text-sm sm:text-lg font-bold {{ $avatarRing }}"
                                          style="background: linear-gradient(135deg,
                                             hsl({{ ($index * 47) % 360 }}, 70%, 60%),
                                             hsl({{ (($index * 47) + 40) % 360 }}, 70%, 50%));">
@@ -290,7 +290,7 @@
 
                             {{-- Student Info --}}
                             <div class="flex-grow min-w-0">
-                                <h3 class="font-bold text-white text-base sm:text-lg truncate">{{ $rank['student_name'] }}</h3>
+                                <h3 class="font-bold text-white text-sm sm:text-base md:text-lg truncate">{{ $rank['student_name'] }}</h3>
 
                                 {{-- Score bar --}}
                                 <div class="mt-1.5 flex items-center gap-2">
