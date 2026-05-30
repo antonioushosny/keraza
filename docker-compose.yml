@@ -1,0 +1,37 @@
+# docker-compose-project.yml
+services:
+  app:
+    image: php-base:8.4
+    container_name: keraza-app
+    restart: unless-stopped
+    tty: true
+    environment:
+      SERVICE_NAME: app
+      SERVICE_TAGS: dev
+    working_dir: /var/www
+    volumes:
+      - .:/var/www
+      - ./docker/php/local.ini:/usr/local/etc/php/conf.d/local.ini
+    networks:
+      - global-network
+
+  webserver:
+    image: nginx:alpine
+    container_name: keraza-nginx
+    restart: unless-stopped
+    tty: true
+    ports:
+      - "8080:80"
+    # labels:
+    #   - "traefik.enable=false" 
+    volumes:
+      - .:/var/www
+      - ./docker/nginx/conf.d:/etc/nginx/conf.d
+    networks:
+      - global-network
+  
+    
+      
+networks:
+  global-network:
+    external: true
