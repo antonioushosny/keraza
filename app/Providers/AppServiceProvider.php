@@ -4,6 +4,8 @@ namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
 
+use Filament\Support\Facades\FilamentIcon;
+
 class AppServiceProvider extends ServiceProvider
 {
     /**
@@ -19,6 +21,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        FilamentIcon::register([
+            'forms::components.text-input.actions.show-password' => 'heroicon-o-eye-slash',
+            'forms::components.text-input.actions.hide-password' => 'heroicon-o-eye',
+        ]);
     }
 }

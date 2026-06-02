@@ -141,6 +141,7 @@ class AttendanceSessionResource extends Resource
                     ->color('danger')
                     ->sortable(),
             ])
+            ->defaultSort('date', 'desc')
             ->filters([
                 //
             ])

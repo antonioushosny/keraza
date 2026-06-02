@@ -13,6 +13,9 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 
+use App\Models\StudentSeasonEnrollment;
+use App\Models\Season;
+
 class BehaviorLogResource extends Resource
 {
     protected static ?string $model = BehaviorLog::class;
@@ -29,11 +32,37 @@ class BehaviorLogResource extends Resource
             ->schema([
                 Forms\Components\Select::make('student_season_enrollment_id')
                     ->label('المخدوم')
-                    ->relationship('enrollment', 'id')
-                    ->getOptionLabelFromRecordUsing(fn ($record) => $record->student->full_name . ' - ' . $record->season->name)
-                    ->required()
                     ->searchable()
-                    ->preload(),
+                    ->getSearchResultsUsing(function (string $search): array {
+                        $query = StudentSeasonEnrollment::query()
+                            ->whereHas('student', function ($sq) use ($search) {
+                                $sq->where('full_name', 'like', "%{$search}%");
+                            });
+
+                        if (!auth()->user()->hasRole('super_admin')) {
+                            $query->whereIn('class_id', auth()->user()->assignedClasses->pluck('id'));
+                        }
+
+                        $activeSeason = Season::active();
+                        if ($activeSeason) {
+                            $query->where('season_id', $activeSeason->id);
+                        }
+
+                        return $query->limit(50)
+                            ->get()
+                            ->mapWithKeys(fn ($record) => [
+                                $record->id => $record->student->full_name . ($record->class ? ' - ' . $record->class->name : '')
+                            ])
+                            ->toArray();
+                    })
+                    ->getOptionLabelUsing(function ($value): ?string {
+                        $record = StudentSeasonEnrollment::with(['student', 'class'])->find($value);
+                        if (!$record) {
+                            return null;
+                        }
+                        return $record->student->full_name . ($record->class ? ' - ' . $record->class->name : '');
+                    })
+                    ->required(),
                 Forms\Components\Select::make('type')
                     ->label('النوع')
                     ->options([
@@ -91,6 +120,7 @@ class BehaviorLogResource extends Resource
                     ->label('بواسطة')
                     ->sortable(),
             ])
+            ->defaultSort('created_at', 'desc')
             ->filters([
                 //
             ])

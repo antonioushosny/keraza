@@ -10,6 +10,8 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 
+use App\Models\ActivityEnrollment;
+
 class ActivityScoreResource extends Resource
 {
     protected static ?string $model = ActivityScore::class;
@@ -23,9 +25,36 @@ class ActivityScoreResource extends Resource
             ->schema([
                 Forms\Components\Select::make('activity_enrollment_id')
                     ->label('المشارك')
-                    ->relationship('activityEnrollment', 'id')
-                    ->getOptionLabelFromRecordUsing(fn ($record) => $record->enrollment->student->full_name . ' - ' . $record->activity->title)
                     ->searchable()
+                    ->getSearchResultsUsing(function (string $search): array {
+                        $query = ActivityEnrollment::query();
+
+                        if (!auth()->user()->hasRole('super_admin')) {
+                            $query->whereIn('activity_id', auth()->user()->assignedActivities->pluck('id'));
+                        }
+
+                        return $query->where(function ($q) use ($search) {
+                            $q->whereHas('enrollment.student', function ($sq) use ($search) {
+                                $sq->where('full_name', 'like', "%{$search}%");
+                            })
+                            ->orWhereHas('activity', function ($aq) use ($search) {
+                                $aq->where('title', 'like', "%{$search}%");
+                            });
+                        })
+                        ->limit(50)
+                        ->get()
+                        ->mapWithKeys(fn ($record) => [
+                            $record->id => $record->enrollment->student->full_name . ' - ' . $record->activity->title
+                        ])
+                        ->toArray();
+                    })
+                    ->getOptionLabelUsing(function ($value): ?string {
+                        $record = ActivityEnrollment::with(['enrollment.student', 'activity'])->find($value);
+                        if (!$record) {
+                            return null;
+                        }
+                        return $record->enrollment->student->full_name . ' - ' . $record->activity->title;
+                    })
                     ->required(),
                 Forms\Components\TextInput::make('score')
                     ->label('الدرجة (%)')
@@ -61,6 +90,7 @@ class ActivityScoreResource extends Resource
                         default => 'danger',
                     }),
             ])
+            ->defaultSort('created_at', 'desc')
             ->filters([
                 //
             ])
