@@ -43,12 +43,17 @@ class ParentResource extends Resource
 
                 Forms\Components\Section::make('الأبناء (المخدومين)')
                     ->schema([
-                        Forms\Components\Select::make('students')
+                        Forms\Components\Select::make('student_ids')
                             ->label('الأبناء المرتبطين')
-                            ->relationship('students', 'full_name')
                             ->multiple()
+                            ->searchable()
                             ->preload()
-                            ->searchable(),
+                            ->options(fn () => \App\Models\Student::pluck('full_name', 'id'))
+                            ->afterStateHydrated(function ($component, $record) {
+                                if ($record) {
+                                    $component->state($record->students()->pluck('id')->toArray());
+                                }
+                            }),
                     ]),
             ]);
     }
