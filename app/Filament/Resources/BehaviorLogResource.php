@@ -79,13 +79,8 @@ class BehaviorLogResource extends Resource
                     ->required()
                     ->maxLength(65535)
                     ->columnSpanFull(),
-                Forms\Components\Select::make('created_by')
-                    ->label('بواسطة')
-                    ->relationship('creator', 'name')
-                    ->default(auth()->id())
-                    ->required()
-                    ->searchable()
-                    ->preload(),
+                Forms\Components\Hidden::make('created_by')
+                    ->default(auth()->id()),
             ]);
     }
 
