@@ -413,6 +413,9 @@ class StudentResource extends Resource
                         $writer = new \OpenSpout\Writer\XLSX\Writer();
                         $writer->openToFile($tempFile);
 
+                        $isSuperAdmin = auth()->user()->hasRole('super_admin');
+                        $activeSeason = \App\Models\Season::active();
+
                         // Headers
                         $headerCells = [
                             \OpenSpout\Common\Entity\Cell::fromValue('الكود'),
@@ -423,6 +426,9 @@ class StudentResource extends Resource
                             \OpenSpout\Common\Entity\Cell::fromValue('رقم موبايل ولي الأمر'),
                             \OpenSpout\Common\Entity\Cell::fromValue('ملاحظات'),
                         ];
+                        if ($isSuperAdmin) {
+                            $headerCells[] = \OpenSpout\Common\Entity\Cell::fromValue('الفصل');
+                        }
                         $writer->addRow(new \OpenSpout\Common\Entity\Row($headerCells));
 
                         // Get records matching current filtered table query
@@ -438,6 +444,11 @@ class StudentResource extends Resource
                                 \OpenSpout\Common\Entity\Cell::fromValue($record->parent?->phone),
                                 \OpenSpout\Common\Entity\Cell::fromValue($record->notes),
                             ];
+                            if ($isSuperAdmin) {
+                                $enrollment = $activeSeason ? $record->enrollments()->where('season_id', $activeSeason->id)->first() : null;
+                                $className = $enrollment?->class?->name ?? '';
+                                $rowCells[] = \OpenSpout\Common\Entity\Cell::fromValue($className);
+                            }
                             $writer->addRow(new \OpenSpout\Common\Entity\Row($rowCells));
                         }
 
