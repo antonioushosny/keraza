@@ -132,7 +132,21 @@ class StudentResource extends Resource
                     ->date(),
             ])
             ->filters([
-                //
+                Tables\Filters\SelectFilter::make('class')
+                    ->label('الفصل')
+                    ->options(\App\Models\KerazaClass::all()->pluck('name', 'id'))
+                    ->query(function (\Illuminate\Database\Eloquent\Builder $query, array $data) {
+                        if (!empty($data['value'])) {
+                            $activeSeason = \App\Models\Season::active();
+                            $query->whereHas('enrollments', function ($q) use ($data, $activeSeason) {
+                                $q->where('class_id', $data['value']);
+                                if ($activeSeason) {
+                                    $q->where('season_id', $activeSeason->id);
+                                }
+                            });
+                        }
+                    })
+                    ->visible(fn () => auth()->user()->hasRole('super_admin')),
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
@@ -208,6 +222,184 @@ class StudentResource extends Resource
                         \Filament\Notifications\Notification::make()
                             ->title('تمت الترقية بنجاح')
                             ->body("تم ترقية {$promotedCount} مخدوم بنجاح إلى الصف التالي، وتخرج {$graduatedCount} مخدومين من الصف السادس.")
+                            ->success()
+                            ->send();
+                    }),
+                Tables\Actions\Action::make('import_students')
+                    ->label('استيراد مخدومين من إكسيل')
+                    ->icon('heroicon-o-document-arrow-up')
+                    ->color('info')
+                    ->form([
+                        Forms\Components\FileUpload::make('file')
+                            ->label('ملف إكسيل')
+                            ->required()
+                            ->acceptedFileTypes([
+                                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                                'text/csv'
+                            ])
+                            ->disk('local')
+                            ->directory('temp')
+                            ->helperText(new \Illuminate\Support\HtmlString('حمل ملف إكسيل (.xlsx) أو ملف CSV. يمكنك تنزيل ملف المثال من <a href="/admin/students/import-template" class="text-primary-600 underline font-bold" target="_blank">هنا</a>')),
+
+                        Forms\Components\Select::make('class_id')
+                            ->label('الفصل المستهدف')
+                            ->required()
+                            ->options(function () {
+                                if (auth()->user()->hasRole('super_admin')) {
+                                    return \App\Models\KerazaClass::all()->pluck('name', 'id');
+                                }
+                                return auth()->user()->assignedClasses->pluck('name', 'id');
+                            })
+                            ->default(function () {
+                                if (!auth()->user()->hasRole('super_admin')) {
+                                    $assigned = auth()->user()->assignedClasses;
+                                    if ($assigned->count() === 1) {
+                                        return $assigned->first()->id;
+                                    }
+                                }
+                                return null;
+                            }),
+                    ])
+                    ->action(function (array $data) {
+                        $filePath = \Illuminate\Support\Facades\Storage::disk('local')->path($data['file']);
+                        
+                        $activeSeason = \App\Models\Season::active();
+                        if (!$activeSeason) {
+                            \Filament\Notifications\Notification::make()
+                                ->title('فشل الاستيراد')
+                                ->body('لا يوجد موسم نشط حاليًا بالسيستم.')
+                                ->danger()
+                                ->send();
+                            return;
+                        }
+
+                        $classId = $data['class_id'];
+                        
+                        // Parse Excel/CSV using OpenSpout
+                        $reader = \OpenSpout\Reader\Common\Creator\ReaderFactory::createFromFile($filePath);
+                        $reader->open($filePath);
+
+                        $importedCount = 0;
+                        $skippedCount = 0;
+
+                        foreach ($reader->getSheetIterator() as $sheet) {
+                            $isHeader = true;
+                            foreach ($sheet->getRowIterator() as $row) {
+                                if ($isHeader) {
+                                    $isHeader = false;
+                                    continue;
+                                }
+
+                                $cells = $row->getCells();
+                                $rowValues = [];
+                                foreach ($cells as $cell) {
+                                    $rowValues[] = trim($cell->getValue() ?? '');
+                                }
+
+                                if (count($rowValues) < 6) {
+                                    $rowValues = array_pad($rowValues, 6, '');
+                                }
+
+                                $studentName = $rowValues[0];
+                                $genderInput = $rowValues[1];
+                                $birthDateInput = $rowValues[2];
+                                $notes = $rowValues[3];
+                                $parentName = $rowValues[4];
+                                $parentPhone = $rowValues[5];
+
+                                // Basic validation
+                                if (empty($studentName) || empty($parentPhone)) {
+                                    $skippedCount++;
+                                    continue;
+                                }
+
+                                // Format gender
+                                $gender = 'male';
+                                if ($genderInput === 'أنثى' || strtolower($genderInput) === 'female') {
+                                    $gender = 'female';
+                                }
+
+                                // Format birth_date
+                                $birthDate = null;
+                                if (!empty($birthDateInput)) {
+                                    if ($birthDateInput instanceof \DateTimeInterface) {
+                                        $birthDate = $birthDateInput->format('Y-m-d');
+                                    } else {
+                                        $parsedTime = strtotime($birthDateInput);
+                                        if ($parsedTime !== false) {
+                                            $birthDate = date('Y-m-d', $parsedTime);
+                                        }
+                                    }
+                                }
+
+                                // Create/Get Parent User
+                                $parent = \App\Models\User::where('phone', $parentPhone)->first();
+                                if (!$parent) {
+                                    $parent = \App\Models\User::create([
+                                        'name' => $parentName ?: ('ولي أمر ' . $studentName),
+                                        'phone' => $parentPhone,
+                                        'password' => bcrypt('123456'),
+                                    ]);
+                                    $parent->assignRole('parent');
+                                } else {
+                                    if (!empty($parentName) && $parent->name !== $parentName) {
+                                        $parent->update(['name' => $parentName]);
+                                    }
+                                }
+
+                                // Check if student already exists for this parent
+                                $existingStudent = \App\Models\Student::where('full_name', $studentName)
+                                    ->where('parent_id', $parent->id)
+                                    ->first();
+
+                                if ($existingStudent) {
+                                    $enrollmentExists = \App\Models\StudentSeasonEnrollment::where('student_id', $existingStudent->id)
+                                        ->where('season_id', $activeSeason->id)
+                                        ->exists();
+
+                                    if (!$enrollmentExists) {
+                                        \App\Models\StudentSeasonEnrollment::create([
+                                            'student_id' => $existingStudent->id,
+                                            'season_id' => $activeSeason->id,
+                                            'class_id' => $classId,
+                                        ]);
+                                        $importedCount++;
+                                    } else {
+                                        $skippedCount++;
+                                    }
+                                    continue;
+                                }
+
+                                // Create student
+                                $student = \App\Models\Student::create([
+                                    'full_name' => $studentName,
+                                    'gender' => $gender,
+                                    'birth_date' => $birthDate,
+                                    'notes' => $notes,
+                                    'parent_id' => $parent->id,
+                                ]);
+
+                                // Enroll student
+                                \App\Models\StudentSeasonEnrollment::create([
+                                    'student_id' => $student->id,
+                                    'season_id' => $activeSeason->id,
+                                    'class_id' => $classId,
+                                ]);
+
+                                $importedCount++;
+                            }
+                        }
+
+                        $reader->close();
+
+                        // Delete the temporary file
+                        if (file_exists($filePath)) {
+                            unlink($filePath);
+                        }
+
+                        \Filament\Notifications\Notification::make()
+                            ->title('تمت عملية الاستيراد بنجاح')
+                            ->body("تم استيراد {$importedCount} مخدوم بنجاح، وتخطي {$skippedCount} مخدومين/صفوف مكررة أو غير صالحة.")
                             ->success()
                             ->send();
                     })

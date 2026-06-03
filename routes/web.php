@@ -18,3 +18,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/parent', [ParentController::class, 'index'])->name('parent.dashboard');
     Route::post('/parent/student/{student}/upload-image', [ParentController::class, 'uploadImage'])->name('parent.student.upload-image');
 });
+
+Route::middleware(['auth:admin'])->group(function () {
+    Route::get('/admin/students/import-template', [\App\Http\Controllers\StudentImportController::class, 'downloadTemplate'])->name('admin.students.import-template');
+});
