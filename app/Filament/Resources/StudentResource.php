@@ -402,6 +402,48 @@ class StudentResource extends Resource
                             ->body("تم استيراد {$importedCount} مخدوم بنجاح، وتخطي {$skippedCount} مخدومين/صفوف مكررة أو غير صالحة.")
                             ->success()
                             ->send();
+                    }),
+                Tables\Actions\Action::make('export_students')
+                    ->label('تصدير إلى إكسيل')
+                    ->icon('heroicon-o-document-arrow-down')
+                    ->color('success')
+                    ->action(function (\Filament\Tables\Contracts\HasTable $livewire) {
+                        $tempFile = tempnam(sys_get_temp_dir(), 'export') . '.xlsx';
+                        
+                        $writer = new \OpenSpout\Writer\XLSX\Writer();
+                        $writer->openToFile($tempFile);
+
+                        // Headers
+                        $headerCells = [
+                            \OpenSpout\Common\Entity\Cell::fromValue('الكود'),
+                            \OpenSpout\Common\Entity\Cell::fromValue('الاسم بالكامل'),
+                            \OpenSpout\Common\Entity\Cell::fromValue('الجنس'),
+                            \OpenSpout\Common\Entity\Cell::fromValue('تاريخ الميلاد'),
+                            \OpenSpout\Common\Entity\Cell::fromValue('اسم ولي الأمر'),
+                            \OpenSpout\Common\Entity\Cell::fromValue('رقم موبايل ولي الأمر'),
+                            \OpenSpout\Common\Entity\Cell::fromValue('ملاحظات'),
+                        ];
+                        $writer->addRow(new \OpenSpout\Common\Entity\Row($headerCells));
+
+                        // Get records matching current filtered table query
+                        $records = $livewire->getFilteredTableQuery()->get();
+
+                        foreach ($records as $record) {
+                            $rowCells = [
+                                \OpenSpout\Common\Entity\Cell::fromValue($record->code),
+                                \OpenSpout\Common\Entity\Cell::fromValue($record->full_name),
+                                \OpenSpout\Common\Entity\Cell::fromValue($record->gender === 'male' ? 'ذكر' : 'أنثى'),
+                                \OpenSpout\Common\Entity\Cell::fromValue($record->birth_date),
+                                \OpenSpout\Common\Entity\Cell::fromValue($record->parent?->name),
+                                \OpenSpout\Common\Entity\Cell::fromValue($record->parent?->phone),
+                                \OpenSpout\Common\Entity\Cell::fromValue($record->notes),
+                            ];
+                            $writer->addRow(new \OpenSpout\Common\Entity\Row($rowCells));
+                        }
+
+                        $writer->close();
+
+                        return response()->download($tempFile, 'students_export_' . now()->format('Y-m-d_H-i-s') . '.xlsx')->deleteFileAfterSend(true);
                     })
             ])
             ->bulkActions([

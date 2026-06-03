@@ -278,4 +278,41 @@ class StudentImportTest extends TestCase
         $this->assertCount(1, $results);
         $this->assertEquals('Student A', $results->first()->full_name);
     }
+
+    public function test_export_generates_xlsx_file(): void
+    {
+        $user = User::create([
+            'name' => 'Admin User',
+            'phone' => '01288226619',
+            'password' => bcrypt('password'),
+        ]);
+        $user->assignRole('super_admin');
+
+        // Create a student with parent details
+        $parent = User::create([
+            'name' => 'Parent Name',
+            'phone' => '01234567890',
+            'password' => bcrypt('password'),
+        ]);
+        $parent->assignRole('parent');
+
+        $student = Student::create([
+            'full_name' => 'Export Student',
+            'gender' => 'male',
+            'birth_date' => '2015-05-15',
+            'notes' => 'Export test',
+            'parent_id' => $parent->id,
+        ]);
+        StudentSeasonEnrollment::create([
+            'student_id' => $student->id,
+            'season_id' => $this->activeSeason->id,
+            'class_id' => $this->classA->id,
+        ]);
+
+        $response = \Livewire\Livewire::actingAs($user, 'admin')
+            ->test(\App\Filament\Resources\StudentResource\Pages\ListStudents::class)
+            ->callTableAction('export_students');
+
+        $response->assertFileDownloaded();
+    }
 }
