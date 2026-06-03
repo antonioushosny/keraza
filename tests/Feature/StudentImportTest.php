@@ -72,6 +72,7 @@ class StudentImportTest extends TestCase
             'name' => 'Admin User',
             'phone' => '01288226619',
             'password' => bcrypt('password'),
+            'type' => 'admin',
         ]);
         $user->assignRole('super_admin');
 
@@ -86,6 +87,7 @@ class StudentImportTest extends TestCase
             'name' => 'Admin User',
             'phone' => '01288226619',
             'password' => bcrypt('password'),
+            'type' => 'admin',
         ]);
         $user->assignRole('super_admin');
 
@@ -162,19 +164,7 @@ class StudentImportTest extends TestCase
                     }
                 }
 
-                $parent = User::where('phone', $parentPhone)->first();
-                if (!$parent) {
-                    $parent = User::create([
-                        'name' => $parentName ?: ('ولي أمر ' . $studentName),
-                        'phone' => $parentPhone,
-                        'password' => bcrypt('123456'),
-                    ]);
-                    $parent->assignRole('parent');
-                } else {
-                    if (!empty($parentName) && $parent->name !== $parentName) {
-                        $parent->update(['name' => $parentName]);
-                    }
-                }
+                $parent = User::createOrGetParent($parentPhone, $parentName, $studentName);
 
                 $existingStudent = Student::where('full_name', $studentName)
                     ->where('parent_id', $parent->id)
@@ -285,6 +275,7 @@ class StudentImportTest extends TestCase
             'name' => 'Admin User',
             'phone' => '01288226619',
             'password' => bcrypt('password'),
+            'type' => 'admin',
         ]);
         $user->assignRole('super_admin');
 
@@ -293,6 +284,7 @@ class StudentImportTest extends TestCase
             'name' => 'Parent Name',
             'phone' => '01234567890',
             'password' => bcrypt('password'),
+            'type' => 'parent',
         ]);
         $parent->assignRole('parent');
 
@@ -314,5 +306,132 @@ class StudentImportTest extends TestCase
             ->callTableAction('export_students');
 
         $response->assertFileDownloaded();
+    }
+
+    public function test_import_with_existing_admin_phone_does_not_modify_admin_details_but_adds_parent_role(): void
+    {
+        // 1. Create an admin user with a specific phone number and name
+        $admin = User::create([
+            'name' => 'Original Admin Name',
+            'phone' => '01288226619',
+            'password' => bcrypt('password'),
+            'type' => 'admin',
+        ]);
+        $admin->assignRole('super_admin');
+
+        // 2. Prepare import data with the admin's phone number but a different parent name
+        $excelData = [
+            ['اسم المخدوم', 'الجنس', 'تاريخ الميلاد', 'ملاحظات', 'اسم ولي الأمر', 'رقم موبايل ولي الأمر'],
+            ['جرجس سمير فايز', 'ذكر', '2015-05-15', 'موهوب في الألحان', 'New Parent Name', '01288226619'],
+        ];
+        $tempFile = $this->createTemporaryExcel($excelData);
+        $relativeFile = 'temp/' . basename($tempFile);
+
+        Storage::disk('local')->put($relativeFile, file_get_contents($tempFile));
+
+        $actionData = [
+            'file' => $relativeFile,
+            'class_id' => $this->classA->id,
+        ];
+
+        // 3. Execute the import (simulate the action in StudentResource)
+        $filePath = Storage::disk('local')->path($actionData['file']);
+        $reader = \OpenSpout\Reader\Common\Creator\ReaderFactory::createFromFile($filePath);
+        $reader->open($filePath);
+
+        $importedCount = 0;
+        $skippedCount = 0;
+
+        foreach ($reader->getSheetIterator() as $sheet) {
+            $isHeader = true;
+            foreach ($sheet->getRowIterator() as $row) {
+                if ($isHeader) {
+                    $isHeader = false;
+                    continue;
+                }
+
+                $cells = $row->getCells();
+                $rowValues = [];
+                foreach ($cells as $cell) {
+                    $rowValues[] = trim($cell->getValue() ?? '');
+                }
+
+                if (count($rowValues) < 6) {
+                    $rowValues = array_pad($rowValues, 6, '');
+                }
+
+                $studentName = $rowValues[0];
+                $genderInput = $rowValues[1];
+                $birthDateInput = $rowValues[2];
+                $notes = $rowValues[3];
+                $parentName = $rowValues[4];
+                $parentPhone = $rowValues[5];
+
+                if (empty($studentName) || empty($parentPhone)) {
+                    $skippedCount++;
+                    continue;
+                }
+
+                $gender = 'male';
+                if ($genderInput === 'أنثى' || strtolower($genderInput) === 'female') {
+                    $gender = 'female';
+                }
+
+                $birthDate = null;
+                if (!empty($birthDateInput)) {
+                    if ($birthDateInput instanceof \DateTimeInterface) {
+                        $birthDate = $birthDateInput->format('Y-m-d');
+                    } else {
+                        $parsedTime = strtotime($birthDateInput);
+                        if ($parsedTime !== false) {
+                            $birthDate = date('Y-m-d', $parsedTime);
+                        }
+                    }
+                }
+
+                // Call the new helper method on User model
+                $parent = User::createOrGetParent($parentPhone, $parentName, $studentName);
+
+                $existingStudent = Student::where('full_name', $studentName)
+                    ->where('parent_id', $parent->id)
+                    ->first();
+
+                if ($existingStudent) {
+                    continue;
+                }
+
+                $student = Student::create([
+                    'full_name' => $studentName,
+                    'gender' => $gender,
+                    'birth_date' => $birthDate,
+                    'notes' => $notes,
+                    'parent_id' => $parent->id,
+                ]);
+
+                StudentSeasonEnrollment::create([
+                    'student_id' => $student->id,
+                    'season_id' => $this->activeSeason->id,
+                    'class_id' => $actionData['class_id'],
+                ]);
+
+                $importedCount++;
+            }
+        }
+        $reader->close();
+
+        // 4. Assertions
+        $admin->refresh();
+        // The admin's name should NOT have changed
+        $this->assertEquals('Original Admin Name', $admin->name);
+        
+        // A new user record of type 'parent' should have been created with the same phone
+        $newParent = User::where('phone', '01288226619')->where('type', 'parent')->first();
+        $this->assertNotNull($newParent);
+        $this->assertNotEquals($admin->id, $newParent->id);
+        $this->assertEquals('New Parent Name', $newParent->name);
+        $this->assertTrue($newParent->hasRole('parent'));
+
+        // Cleanup
+        unlink($tempFile);
     }
 }

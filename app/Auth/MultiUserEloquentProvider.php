@@ -7,6 +7,14 @@ use Illuminate\Contracts\Auth\Authenticatable;
 
 class MultiUserEloquentProvider extends EloquentUserProvider
 {
+    protected ?string $userType;
+
+    public function __construct($hasher, $model, ?string $userType = null)
+    {
+        parent::__construct($hasher, $model);
+        $this->userType = $userType;
+    }
+
     /**
      * Retrieve a user by the given credentials.
      *
@@ -23,6 +31,10 @@ class MultiUserEloquentProvider extends EloquentUserProvider
 
         // First we will dynamic query to find any matching users
         $query = $this->createModel()->newQuery();
+
+        if ($this->userType) {
+            $query->where('type', $this->userType);
+        }
 
         foreach ($credentials as $key => $value) {
             if (str_contains($key, 'password')) {

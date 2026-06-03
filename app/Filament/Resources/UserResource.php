@@ -36,16 +36,7 @@ class UserResource extends Resource
                                 table: 'users',
                                 ignorable: fn ($record) => $record,
                                 modifyRuleUsing: function ($rule) {
-                                    return $rule->where(function ($query) {
-                                        $query->whereNotExists(function ($q) {
-                                            $q->selectRaw(1)
-                                                ->from('model_has_roles')
-                                                ->join('roles', 'roles.id', '=', 'model_has_roles.role_id')
-                                                ->whereColumn('model_has_roles.model_id', 'users.id')
-                                                ->where('model_has_roles.model_type', \App\Models\User::class)
-                                                ->where('roles.name', 'parent');
-                                        });
-                                    });
+                                    return $rule->where('type', 'admin');
                                 }
                             ),
                         Forms\Components\TextInput::make('password')
@@ -116,9 +107,7 @@ class UserResource extends Resource
     public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
     {
         return parent::getEloquentQuery()
-            ->whereDoesntHave('roles', function ($query) {
-                $query->where('name', 'parent');
-            });
+            ->where('type', 'admin');
     }
 
     public static function getPages(): array

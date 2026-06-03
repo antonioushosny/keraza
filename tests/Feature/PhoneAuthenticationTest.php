@@ -28,6 +28,7 @@ class PhoneAuthenticationTest extends TestCase
             'name' => 'Parent User',
             'phone' => '01288226619',
             'password' => bcrypt('parent-password'),
+            'type' => 'parent',
         ]);
         $parent->assignRole('parent');
 
@@ -36,6 +37,7 @@ class PhoneAuthenticationTest extends TestCase
             'name' => 'Admin User',
             'phone' => '01288226619',
             'password' => bcrypt('admin-password'),
+            'type' => 'admin',
         ]);
         $admin->assignRole('super_admin');
 
@@ -48,6 +50,7 @@ class PhoneAuthenticationTest extends TestCase
             'name' => 'Parent User',
             'phone' => '01288226619',
             'password' => bcrypt('parent-password'),
+            'type' => 'parent',
         ]);
         $parent->assignRole('parent');
 
@@ -55,6 +58,7 @@ class PhoneAuthenticationTest extends TestCase
             'name' => 'Admin User',
             'phone' => '01288226619',
             'password' => bcrypt('admin-password'),
+            'type' => 'admin',
         ]);
         $admin->assignRole('super_admin');
 
@@ -84,19 +88,13 @@ class PhoneAuthenticationTest extends TestCase
             'name' => 'Admin User',
             'phone' => '01288226619',
             'password' => bcrypt('admin-password'),
+            'type' => 'admin',
         ]);
         $admin->assignRole('super_admin');
 
         // Create the unique rule as constructed in ParentResource
         $rule = \Illuminate\Validation\Rule::unique('users', 'phone')->where(function ($query) {
-            $query->whereExists(function ($q) {
-                $q->selectRaw(1)
-                    ->from('model_has_roles')
-                    ->join('roles', 'roles.id', '=', 'model_has_roles.role_id')
-                    ->whereColumn('model_has_roles.model_id', 'users.id')
-                    ->where('model_has_roles.model_type', \App\Models\User::class)
-                    ->where('roles.name', 'parent');
-            });
+            $query->where('type', 'parent');
         });
 
         // Run validation
@@ -116,19 +114,13 @@ class PhoneAuthenticationTest extends TestCase
             'name' => 'Parent User',
             'phone' => '01288226619',
             'password' => bcrypt('parent-password'),
+            'type' => 'parent',
         ]);
         $parent->assignRole('parent');
 
         // Create the unique rule as constructed in UserResource
         $rule = \Illuminate\Validation\Rule::unique('users', 'phone')->where(function ($query) {
-            $query->whereNotExists(function ($q) {
-                $q->selectRaw(1)
-                    ->from('model_has_roles')
-                    ->join('roles', 'roles.id', '=', 'model_has_roles.role_id')
-                    ->whereColumn('model_has_roles.model_id', 'users.id')
-                    ->where('model_has_roles.model_type', \App\Models\User::class)
-                    ->where('roles.name', 'parent');
-            });
+            $query->where('type', 'admin');
         });
 
         // Run validation
@@ -148,19 +140,13 @@ class PhoneAuthenticationTest extends TestCase
             'name' => 'Parent 1',
             'phone' => '01288226619',
             'password' => bcrypt('parent-password'),
+            'type' => 'parent',
         ]);
         $parent1->assignRole('parent');
 
         // Create the unique rule as constructed in ParentResource
         $rule = \Illuminate\Validation\Rule::unique('users', 'phone')->where(function ($query) {
-            $query->whereExists(function ($q) {
-                $q->selectRaw(1)
-                    ->from('model_has_roles')
-                    ->join('roles', 'roles.id', '=', 'model_has_roles.role_id')
-                    ->whereColumn('model_has_roles.model_id', 'users.id')
-                    ->where('model_has_roles.model_type', \App\Models\User::class)
-                    ->where('roles.name', 'parent');
-            });
+            $query->where('type', 'parent');
         });
 
         // Run validation for another parent trying to use the same phone

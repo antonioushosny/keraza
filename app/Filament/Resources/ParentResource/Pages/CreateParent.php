@@ -14,6 +14,7 @@ class CreateParent extends CreateRecord
 
     protected function mutateFormDataBeforeCreate(array $data): array
     {
+        $data['type'] = 'parent';
         $this->studentIds = $data['student_ids'] ?? [];
         unset($data['student_ids']);
         return $data;

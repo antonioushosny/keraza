@@ -37,16 +37,7 @@ class ParentResource extends Resource
                                 table: 'users',
                                 ignorable: fn ($record) => $record,
                                 modifyRuleUsing: function ($rule) {
-                                    return $rule->where(function ($query) {
-                                        $query->whereExists(function ($q) {
-                                            $q->selectRaw(1)
-                                                ->from('model_has_roles')
-                                                ->join('roles', 'roles.id', '=', 'model_has_roles.role_id')
-                                                ->whereColumn('model_has_roles.model_id', 'users.id')
-                                                ->where('model_has_roles.model_type', \App\Models\User::class)
-                                                ->where('roles.name', 'parent');
-                                        });
-                                    });
+                                    return $rule->where('type', 'parent');
                                 }
                             ),
                         Forms\Components\TextInput::make('password')
@@ -103,9 +94,7 @@ class ParentResource extends Resource
     public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery()
-            ->whereHas('roles', function ($query) {
-                $query->where('name', 'parent');
-            });
+            ->where('type', 'parent');
     }
 
     public static function getPages(): array

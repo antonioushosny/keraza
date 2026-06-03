@@ -333,19 +333,7 @@ class StudentResource extends Resource
                                 }
 
                                 // Create/Get Parent User
-                                $parent = \App\Models\User::where('phone', $parentPhone)->first();
-                                if (!$parent) {
-                                    $parent = \App\Models\User::create([
-                                        'name' => $parentName ?: ('ولي أمر ' . $studentName),
-                                        'phone' => $parentPhone,
-                                        'password' => bcrypt('123456'),
-                                    ]);
-                                    $parent->assignRole('parent');
-                                } else {
-                                    if (!empty($parentName) && $parent->name !== $parentName) {
-                                        $parent->update(['name' => $parentName]);
-                                    }
-                                }
+                                $parent = \App\Models\User::createOrGetParent($parentPhone, $parentName, $studentName);
 
                                 // Check if student already exists for this parent
                                 $existingStudent = \App\Models\Student::where('full_name', $studentName)

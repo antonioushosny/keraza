@@ -29,7 +29,7 @@ class AppServiceProvider extends ServiceProvider
         ]);
 
         Auth::provider('multi-user-eloquent', function ($app, array $config) {
-            return new MultiUserEloquentProvider($app['hash'], $config['model']);
+            return new MultiUserEloquentProvider($app['hash'], $config['model'], $config['type'] ?? null);
         });
     }
 }

@@ -65,6 +65,7 @@ class DatabaseSeeder extends Seeder
             'phone' => '01000000000',
             'name' => 'المدير العام',
             'password' => bcrypt('password'),
+            'type' => 'admin',
         ]);
         $user->assignRole('super_admin');
 
@@ -76,6 +77,7 @@ class DatabaseSeeder extends Seeder
             'phone' => '01222222222',
             'name' => 'ولي أمر تجريبي',
             'password' => bcrypt('password'),
+            'type' => 'parent',
         ]);
         $parent->assignRole('parent');
 

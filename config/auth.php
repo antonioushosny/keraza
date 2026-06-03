@@ -44,7 +44,7 @@ return [
         ],
         'admin' => [
             'driver' => 'session',
-            'provider' => 'users',
+            'provider' => 'admins',
         ],
     ],
 
@@ -69,6 +69,11 @@ return [
         'users' => [
             'driver' => 'multi-user-eloquent',
             'model' => env('AUTH_MODEL', User::class),
+        ],
+        'admins' => [
+            'driver' => 'multi-user-eloquent',
+            'model' => env('AUTH_MODEL', User::class),
+            'type' => 'admin',
         ],
 
         // 'users' => [
