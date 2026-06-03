@@ -32,7 +32,22 @@ class UserResource extends Resource
                         Forms\Components\TextInput::make('phone')
                             ->label('رقم الموبايل')
                             ->required()
-                            ->unique(ignoreRecord: true),
+                            ->unique(
+                                table: 'users',
+                                ignorable: fn ($record) => $record,
+                                modifyRuleUsing: function ($rule) {
+                                    return $rule->where(function ($query) {
+                                        $query->whereNotExists(function ($q) {
+                                            $q->selectRaw(1)
+                                                ->from('model_has_roles')
+                                                ->join('roles', 'roles.id', '=', 'model_has_roles.role_id')
+                                                ->whereColumn('model_has_roles.model_id', 'users.id')
+                                                ->where('model_has_roles.model_type', \App\Models\User::class)
+                                                ->where('roles.name', 'parent');
+                                        });
+                                    });
+                                }
+                            ),
                         Forms\Components\TextInput::make('password')
                             ->label('كلمة المرور')
                             ->password()
