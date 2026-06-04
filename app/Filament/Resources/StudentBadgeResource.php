@@ -23,6 +23,11 @@ class StudentBadgeResource extends Resource
 
     protected static ?string $pluralModelLabel = 'أوسمة المخدومين';
 
+    public static function canViewAny(): bool
+    {
+        return auth()->user()?->hasAnyRole(['super_admin', 'class_admin', 'class_servant']) ?? false;
+    }
+
     public static function form(Form $form): Form
     {
         return $form
@@ -91,6 +96,26 @@ class StudentBadgeResource extends Resource
                     Tables\Actions\DeleteBulkAction::make(),
                 ]),
             ]);
+    }
+
+    public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
+    {
+        $query = parent::getEloquentQuery();
+        $activeSeason = \App\Models\Season::active();
+
+        if ($activeSeason) {
+            $query->whereHas('enrollment', function ($q) use ($activeSeason) {
+                $q->where('season_id', $activeSeason->id);
+            });
+        }
+
+        if (auth()->user()->hasRole('super_admin')) {
+            return $query;
+        }
+
+        return $query->whereHas('enrollment', function ($q) {
+            $q->whereIn('class_id', auth()->user()->assignedClasses->pluck('id'));
+        });
     }
 
     public static function getPages(): array

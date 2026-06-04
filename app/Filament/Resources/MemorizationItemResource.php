@@ -17,6 +17,11 @@ class MemorizationItemResource extends Resource
     protected static ?string $modelLabel = 'بند تسميع';
     protected static ?string $pluralModelLabel = 'بنود التسميع';
 
+    public static function canViewAny(): bool
+    {
+        return auth()->user()?->hasAnyRole(['super_admin', 'class_admin', 'class_servant']) ?? false;
+    }
+
     public static function form(Form $form): Form
     {
         return $form
@@ -25,7 +30,13 @@ class MemorizationItemResource extends Resource
                     ->default(fn () => \App\Models\Season::active()?->id),
                 Forms\Components\Select::make('class_id')
                     ->label('المرحلة')
-                    ->relationship('class', 'name')
+                    ->relationship(
+                        name: 'class',
+                        titleAttribute: 'name',
+                        modifyQueryUsing: fn ($query) => auth()->user()->hasRole('super_admin')
+                            ? $query
+                            : $query->whereIn('id', auth()->user()->assignedClasses->pluck('id'))
+                    )
                     ->required()
                     ->live()
                     ->afterStateUpdated(function ($state, Forms\Set $set) {

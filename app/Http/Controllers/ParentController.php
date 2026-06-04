@@ -99,4 +99,49 @@ class ParentController extends Controller
 
         return back()->with('error', 'حدث خطأ أثناء رفع الصورة.');
     }
+
+    public function showProfile()
+    {
+        return view('parent-profile', [
+            'user' => auth()->user(),
+        ]);
+    }
+
+    public function updateProfile(Request $request)
+    {
+        $user = auth()->user();
+
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'phone' => [
+                'required',
+                'string',
+                'regex:/^0[0-9]{10}$/',
+                \Illuminate\Validation\Rule::unique('users', 'phone')
+                    ->ignore($user->id)
+                    ->where('type', 'parent')
+            ],
+            'password' => 'nullable|string|min:6|confirmed',
+        ], [
+            'name.required' => 'حقل الاسم مطلوب.',
+            'phone.required' => 'رقم الهاتف مطلوب.',
+            'phone.regex' => 'يجب أن يكون رقم الهاتف 11 رقماً ويبدأ بـ 0.',
+            'phone.unique' => 'رقم الهاتف مسجل بالفعل لولي أمر آخر.',
+            'password.min' => 'يجب أن تكون كلمة المرور 6 أحرف على الأقل.',
+            'password.confirmed' => 'تأكيد كلمة المرور غير متطابق.',
+        ]);
+
+        $data = [
+            'name' => $request->name,
+            'phone' => $request->phone,
+        ];
+
+        if ($request->filled('password')) {
+            $data['password'] = bcrypt($request->password);
+        }
+
+        $user->update($data);
+
+        return redirect()->route('parent.dashboard')->with('success', 'تم تحديث بيانات الحساب بنجاح!');
+    }
 }

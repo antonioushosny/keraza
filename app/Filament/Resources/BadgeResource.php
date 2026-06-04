@@ -17,6 +17,26 @@ class BadgeResource extends Resource
     protected static ?string $modelLabel = 'وسام';
     protected static ?string $pluralModelLabel = 'الأوسمة والجوائز';
 
+    public static function canViewAny(): bool
+    {
+        return auth()->user()?->hasAnyRole(['super_admin', 'class_admin', 'class_servant']) ?? false;
+    }
+
+    public static function canCreate(): bool
+    {
+        return auth()->user()?->hasRole('super_admin') ?? false;
+    }
+
+    public static function canEdit($record): bool
+    {
+        return auth()->user()?->hasRole('super_admin') ?? false;
+    }
+
+    public static function canDelete($record): bool
+    {
+        return auth()->user()?->hasRole('super_admin') ?? false;
+    }
+
     public static function form(Form $form): Form
     {
         return $form

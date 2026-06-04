@@ -29,6 +29,7 @@ class AdminPanelProvider extends PanelProvider
             ->path('admin')
             ->authGuard('admin')
             ->login(Login::class)
+            ->profile(\App\Filament\Pages\Auth\EditProfile::class)
             ->brandName('مهرجان الكرازة')
             ->brandLogo(asset('icon.png'))
             ->brandLogoHeight('2.5rem')

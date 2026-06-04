@@ -29,10 +29,13 @@
                     <img src="/icon.png" class="w-10 h-10 rounded-full" alt="Logo">
                     <h1 class="text-xl font-bold text-gray-800">حساب ولي الأمر</h1>
                 </div>
-                <form action="{{ route('logout') }}" method="POST">
-                    @csrf
-                    <button type="submit" class="text-sm font-bold text-red-500 bg-red-50 px-4 py-2 rounded-xl">خروج</button>
-                </form>
+                <div class="flex items-center gap-3">
+                    <a href="{{ route('parent.profile') }}" class="text-sm font-bold text-amber-600 bg-amber-50 px-4 py-2 rounded-xl">تعديل الحساب</a>
+                    <form action="{{ route('logout') }}" method="POST">
+                        @csrf
+                        <button type="submit" class="text-sm font-bold text-red-500 bg-red-50 px-4 py-2 rounded-xl">خروج</button>
+                    </form>
+                </div>
             </div>
         </div>
 

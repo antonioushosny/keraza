@@ -23,6 +23,11 @@ class ExamScoreResource extends Resource
 
     protected static ?string $pluralModelLabel = 'درجات الامتحانات';
 
+    public static function canViewAny(): bool
+    {
+        return auth()->user()?->hasAnyRole(['super_admin', 'class_admin', 'class_servant']) ?? false;
+    }
+
     public static function form(Form $form): Form
     {
         return $form
@@ -62,7 +67,13 @@ class ExamScoreResource extends Resource
                     ->required(),
                 Forms\Components\Select::make('exam_id')
                     ->label('الامتحان')
-                    ->relationship('exam', 'title')
+                    ->relationship(
+                        name: 'exam',
+                        titleAttribute: 'title',
+                        modifyQueryUsing: fn ($query) => auth()->user()->hasRole('super_admin')
+                            ? $query
+                            : $query->whereIn('class_id', auth()->user()->assignedClasses->pluck('id'))
+                    )
                     ->required(),
                 Forms\Components\TextInput::make('score')
                     ->label('الدرجة')

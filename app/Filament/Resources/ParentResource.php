@@ -21,6 +21,11 @@ class ParentResource extends Resource
 
     protected static ?string $pluralModelLabel = 'أولياء الأمور';
 
+    public static function canViewAny(): bool
+    {
+        return auth()->user()?->hasAnyRole(['super_admin', 'class_admin', 'class_servant']) ?? false;
+    }
+
     public static function form(Form $form): Form
     {
         return $form

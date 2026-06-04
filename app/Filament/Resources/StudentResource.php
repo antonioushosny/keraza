@@ -17,6 +17,11 @@ class StudentResource extends Resource
     protected static ?string $modelLabel = 'مخدوم';
     protected static ?string $pluralModelLabel = 'المخدومين';
 
+    public static function canViewAny(): bool
+    {
+        return auth()->user()?->hasAnyRole(['super_admin', 'class_admin', 'class_servant']) ?? false;
+    }
+
     public static function form(Form $form): Form
     {
         return $form
@@ -52,7 +57,10 @@ class StudentResource extends Resource
 
                         Forms\Components\Select::make('class_id')
                             ->label('الفصل')
-                            ->options(\App\Models\KerazaClass::all()->pluck('name', 'id'))
+                            ->options(fn () => auth()->user()->hasRole('super_admin')
+                                ? \App\Models\KerazaClass::all()->pluck('name', 'id')
+                                : auth()->user()->assignedClasses->pluck('name', 'id')
+                            )
                             ->required()
                             ->afterStateHydrated(function (Forms\Components\Select $component, $state, $record) {
                                 if ($record) {
@@ -280,7 +288,10 @@ class StudentResource extends Resource
                         $reader->open($filePath);
 
                         $importedCount = 0;
+                        $updatedCount = 0;
                         $skippedCount = 0;
+                        $errors = [];
+                        $rowNum = 1;
 
                         foreach ($reader->getSheetIterator() as $sheet) {
                             $isHeader = true;
@@ -289,6 +300,7 @@ class StudentResource extends Resource
                                     $isHeader = false;
                                     continue;
                                 }
+                                $rowNum++;
 
                                 $cells = $row->getCells();
                                 $rowValues = [];
@@ -308,28 +320,59 @@ class StudentResource extends Resource
                                 $parentPhone = $rowValues[5];
 
                                 // Basic validation
-                                if (empty($studentName) || empty($parentPhone)) {
+                                if (empty($studentName)) {
+                                    $errors[] = "الصف {$rowNum}: اسم المخدوم فارغ.";
                                     $skippedCount++;
                                     continue;
                                 }
 
-                                // Format gender
+                                if (empty($parentPhone)) {
+                                    $errors[] = "الصف {$rowNum} (المخدوم: {$studentName}): رقم موبايل ولي الأمر فارغ.";
+                                    $skippedCount++;
+                                    continue;
+                                }
+
+                                // 1. Phone validation (Starts with 0 and exactly 11 digits)
+                                if (!preg_match('/^0[0-9]{10}$/', $parentPhone)) {
+                                    $errors[] = "الصف {$rowNum} (المخدوم: {$studentName}): رقم موبايل ولي الأمر '{$parentPhone}' غير صالح. يجب أن يتكون من 11 رقماً ويبدأ بـ 0.";
+                                    $skippedCount++;
+                                    continue;
+                                }
+
+                                // 2. Gender validation
+                                $genderInputClean = strtolower(trim($genderInput));
+                                if (!in_array($genderInputClean, ['ذكر', 'أنثى', 'male', 'female'])) {
+                                    $errors[] = "الصف {$rowNum} (المخدوم: {$studentName}): الجنس '{$genderInput}' غير صالح. يجب أن يكون (ذكر/أنثى/male/female).";
+                                    $skippedCount++;
+                                    continue;
+                                }
+
                                 $gender = 'male';
-                                if ($genderInput === 'أنثى' || strtolower($genderInput) === 'female') {
+                                if ($genderInputClean === 'أنثى' || $genderInputClean === 'female') {
                                     $gender = 'female';
                                 }
 
-                                // Format birth_date
+                                // 3. Birth date validation
+                                if (empty($birthDateInput)) {
+                                    $errors[] = "الصف {$rowNum} (المخدوم: {$studentName}): تاريخ الميلاد فارغ.";
+                                    $skippedCount++;
+                                    continue;
+                                }
+
                                 $birthDate = null;
-                                if (!empty($birthDateInput)) {
-                                    if ($birthDateInput instanceof \DateTimeInterface) {
-                                        $birthDate = $birthDateInput->format('Y-m-d');
-                                    } else {
-                                        $parsedTime = strtotime($birthDateInput);
-                                        if ($parsedTime !== false) {
-                                            $birthDate = date('Y-m-d', $parsedTime);
-                                        }
+                                if ($birthDateInput instanceof \DateTimeInterface) {
+                                    $birthDate = $birthDateInput->format('Y-m-d');
+                                } else {
+                                    $parsedTime = strtotime($birthDateInput);
+                                    if ($parsedTime !== false) {
+                                        $birthDate = date('Y-m-d', $parsedTime);
                                     }
+                                }
+
+                                if (!$birthDate || $birthDate > date('Y-m-d')) {
+                                    $errors[] = "الصف {$rowNum} (المخدوم: {$studentName}): تاريخ الميلاد '{$birthDateInput}' غير صالح أو في المستقبل.";
+                                    $skippedCount++;
+                                    continue;
                                 }
 
                                 // Create/Get Parent User
@@ -341,20 +384,25 @@ class StudentResource extends Resource
                                     ->first();
 
                                 if ($existingStudent) {
-                                    $enrollmentExists = \App\Models\StudentSeasonEnrollment::where('student_id', $existingStudent->id)
-                                        ->where('season_id', $activeSeason->id)
-                                        ->exists();
+                                    // Update student details
+                                    $existingStudent->update([
+                                        'gender' => $gender,
+                                        'birth_date' => $birthDate,
+                                        'notes' => $notes,
+                                    ]);
 
-                                    if (!$enrollmentExists) {
-                                        \App\Models\StudentSeasonEnrollment::create([
+                                    // Enroll or update enrollment for active season
+                                    \App\Models\StudentSeasonEnrollment::updateOrCreate(
+                                        [
                                             'student_id' => $existingStudent->id,
                                             'season_id' => $activeSeason->id,
+                                        ],
+                                        [
                                             'class_id' => $classId,
-                                        ]);
-                                        $importedCount++;
-                                    } else {
-                                        $skippedCount++;
-                                    }
+                                        ]
+                                    );
+
+                                    $updatedCount++;
                                     continue;
                                 }
 
@@ -385,11 +433,29 @@ class StudentResource extends Resource
                             unlink($filePath);
                         }
 
-                        \Filament\Notifications\Notification::make()
-                            ->title('تمت عملية الاستيراد بنجاح')
-                            ->body("تم استيراد {$importedCount} مخدوم بنجاح، وتخطي {$skippedCount} مخدومين/صفوف مكررة أو غير صالحة.")
-                            ->success()
-                            ->send();
+                        // Build HTML notification body
+                        $notificationBody = "تم استيراد {$importedCount} مخدوم جديد، وتحديث {$updatedCount} مخدوم.";
+                        
+                        if (count($errors) > 0) {
+                            $notificationBody .= "<br><br><strong>الصفوف التي تم تخطيها بسبب أخطاء ({$skippedCount}):</strong>";
+                            $notificationBody .= "<ul style='list-style-type: disc; padding-inline-start: 20px; color: #dc2626; margin-top: 5px;'>";
+                            foreach ($errors as $error) {
+                                $notificationBody .= "<li>" . e($error) . "</li>";
+                            }
+                            $notificationBody .= "</ul>";
+                        }
+
+                        $notification = \Filament\Notifications\Notification::make()
+                            ->title(count($errors) > 0 ? 'تمت عملية الاستيراد مع وجود بعض الأخطاء' : 'تمت عملية الاستيراد بنجاح')
+                            ->body(new \Illuminate\Support\HtmlString($notificationBody));
+
+                        if (count($errors) > 0) {
+                            $notification->warning();
+                        } else {
+                            $notification->success();
+                        }
+
+                        $notification->send();
                     }),
                 Tables\Actions\Action::make('export_students')
                     ->label('تصدير إلى إكسيل')

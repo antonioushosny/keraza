@@ -23,6 +23,11 @@ class ExamResource extends Resource
 
     protected static ?string $pluralModelLabel = 'الامتحانات';
 
+    public static function canViewAny(): bool
+    {
+        return auth()->user()?->hasAnyRole(['super_admin', 'class_admin', 'class_servant']) ?? false;
+    }
+
     public static function form(Form $form): Form
     {
         return $form
@@ -41,7 +46,13 @@ class ExamResource extends Resource
                     ->preload(),
                 Forms\Components\Select::make('class_id')
                     ->label('الفصل')
-                    ->relationship('class', 'name')
+                    ->relationship(
+                        name: 'class',
+                        titleAttribute: 'name',
+                        modifyQueryUsing: fn ($query) => auth()->user()->hasRole('super_admin')
+                            ? $query
+                            : $query->whereIn('id', auth()->user()->assignedClasses->pluck('id'))
+                    )
                     ->required()
                     ->searchable()
                     ->preload()

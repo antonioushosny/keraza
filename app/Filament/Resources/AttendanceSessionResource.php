@@ -23,6 +23,11 @@ class AttendanceSessionResource extends Resource
 
     protected static ?string $pluralModelLabel = 'أيام الحضور';
 
+    public static function canViewAny(): bool
+    {
+        return auth()->user()?->hasAnyRole(['super_admin', 'class_admin', 'class_servant']) ?? false;
+    }
+
     public static function form(Form $form): Form
     {
         return $form
@@ -33,7 +38,13 @@ class AttendanceSessionResource extends Resource
                             ->default(fn () => \App\Models\Season::active()?->id),
                         Forms\Components\Select::make('class_id')
                             ->label('الفصل')
-                            ->relationship('class', 'name')
+                            ->relationship(
+                                name: 'class',
+                                titleAttribute: 'name',
+                                modifyQueryUsing: fn ($query) => auth()->user()->hasRole('super_admin')
+                                    ? $query
+                                    : $query->whereIn('id', auth()->user()->assignedClasses->pluck('id'))
+                            )
                             ->required()
                             ->searchable()
                             ->preload()

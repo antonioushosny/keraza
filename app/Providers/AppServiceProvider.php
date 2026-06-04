@@ -31,5 +31,33 @@ class AppServiceProvider extends ServiceProvider
         Auth::provider('multi-user-eloquent', function ($app, array $config) {
             return new MultiUserEloquentProvider($app['hash'], $config['model'], $config['type'] ?? null);
         });
+
+        \Filament\Support\Facades\FilamentView::registerRenderHook(
+            'panels::head.end',
+            fn () => new \Illuminate\Support\HtmlString('
+                <style>
+                    @media (min-width: 640px) {
+                        .fi-pagination-items {
+                            display: flex !important;
+                        }
+                        .fi-pagination-overview {
+                            display: inline !important;
+                        }
+                        .fi-pagination-records-per-page-select:not(.fi-compact) {
+                            display: inline !important;
+                        }
+                        .fi-pagination-records-per-page-select.fi-compact {
+                            display: none !important;
+                        }
+                        .fi-pagination:not(.fi-simple) > .fi-pagination-previous-btn {
+                            display: none !important;
+                        }
+                        .fi-pagination:not(.fi-simple) > .fi-pagination-next-btn {
+                            display: none !important;
+                        }
+                    }
+                </style>
+            ')
+        );
     }
 }

@@ -23,6 +23,11 @@ class ActivityResource extends Resource
 
     protected static ?string $pluralModelLabel = 'الأنشطة';
 
+    public static function canViewAny(): bool
+    {
+        return auth()->user()?->hasAnyRole(['super_admin', 'activity_admin']) ?? false;
+    }
+
     public static function form(Form $form): Form
     {
         return $form
@@ -88,6 +93,22 @@ class ActivityResource extends Resource
         return [
             //
         ];
+    }
+
+    public static function getEloquentQuery(): Builder
+    {
+        $query = parent::getEloquentQuery();
+        
+        if (auth()->user()->hasRole('super_admin')) {
+            return $query;
+        }
+        
+        if (auth()->user()->hasRole('activity_admin')) {
+            $assignedActivityIds = auth()->user()->assignedActivities->pluck('id');
+            return $query->whereIn('id', $assignedActivityIds);
+        }
+        
+        return $query->whereRaw('1 = 0');
     }
 
     public static function getPages(): array

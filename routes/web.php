@@ -16,6 +16,8 @@ Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 
 Route::middleware(['auth'])->group(function () {
     Route::get('/parent', [ParentController::class, 'index'])->name('parent.dashboard');
+    Route::get('/parent/profile', [ParentController::class, 'showProfile'])->name('parent.profile');
+    Route::post('/parent/profile', [ParentController::class, 'updateProfile']);
     Route::post('/parent/student/{student}/upload-image', [ParentController::class, 'uploadImage'])->name('parent.student.upload-image');
 });
 

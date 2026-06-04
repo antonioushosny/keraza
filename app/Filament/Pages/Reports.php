@@ -16,6 +16,11 @@ class Reports extends Page
     protected static ?string $navigationLabel = 'التقارير';
     protected static string $view = 'filament.pages.reports';
 
+    public static function canAccess(): bool
+    {
+        return auth()->user()?->hasRole('super_admin') ?? false;
+    }
+
     public array $stats = [];
     public array $classComparison = [];
     public array $alerts = [];

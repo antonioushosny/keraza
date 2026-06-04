@@ -19,6 +19,26 @@ class ActivityScoreResource extends Resource
     protected static ?string $modelLabel = 'تقييم نشاط';
     protected static ?string $pluralModelLabel = 'تقييمات الأنشطة';
 
+    public static function canViewAny(): bool
+    {
+        return auth()->user()?->hasAnyRole(['super_admin', 'class_admin', 'class_servant', 'activity_admin']) ?? false;
+    }
+
+    public static function canCreate(): bool
+    {
+        return auth()->user()?->hasAnyRole(['super_admin', 'activity_admin']) ?? false;
+    }
+
+    public static function canEdit($record): bool
+    {
+        return auth()->user()?->hasAnyRole(['super_admin', 'activity_admin']) ?? false;
+    }
+
+    public static function canDelete($record): bool
+    {
+        return auth()->user()?->hasAnyRole(['super_admin', 'activity_admin']) ?? false;
+    }
+
     public static function form(Form $form): Form
     {
         return $form
@@ -107,13 +127,36 @@ class ActivityScoreResource extends Resource
     public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
     {
         $query = parent::getEloquentQuery();
+        $user = auth()->user();
 
-        if (auth()->user()->hasRole('super_admin')) {
+        if (!$user) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        if ($user->hasRole('super_admin')) {
             return $query;
         }
 
-        return $query->whereHas('activityEnrollment.activity', function ($q) {
-            $q->whereIn('id', auth()->user()->assignedActivities->pluck('id'));
+        return $query->where(function ($subQuery) use ($user) {
+            // If they are activity_admin
+            if ($user->hasRole('activity_admin')) {
+                $subQuery->orWhereHas('activityEnrollment.activity', function ($q) use ($user) {
+                    $q->whereIn('id', $user->assignedActivities->pluck('id'));
+                });
+            }
+
+            // If they are class_admin or class_servant
+            if ($user->hasAnyRole(['class_admin', 'class_servant'])) {
+                $assignedClassIds = $user->assignedClasses->pluck('id');
+                $activeSeason = \App\Models\Season::active();
+
+                $subQuery->orWhereHas('activityEnrollment.enrollment', function ($q) use ($assignedClassIds, $activeSeason) {
+                    $q->whereIn('class_id', $assignedClassIds);
+                    if ($activeSeason) {
+                        $q->where('season_id', $activeSeason->id);
+                    }
+                });
+            }
         });
     }
 

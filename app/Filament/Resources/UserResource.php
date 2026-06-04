@@ -110,6 +110,11 @@ class UserResource extends Resource
             ->where('type', 'admin');
     }
 
+    public static function canViewAny(): bool
+    {
+        return auth()->user()?->hasRole('super_admin') ?? false;
+    }
+
     public static function getPages(): array
     {
         return [

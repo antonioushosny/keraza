@@ -12,6 +12,7 @@ use Filament\Tables\Table;
 
 use App\Models\StudentSeasonEnrollment;
 use App\Models\Season;
+use Illuminate\Database\Eloquent\Builder;
 
 class ActivityEnrollmentResource extends Resource
 {
@@ -22,6 +23,11 @@ class ActivityEnrollmentResource extends Resource
     protected static ?string $modelLabel = 'تسجيل نشاط';
 
     protected static ?string $pluralModelLabel = 'تسجيلات الأنشطة';
+
+    public static function canViewAny(): bool
+    {
+        return auth()->user()?->hasAnyRole(['super_admin', 'activity_admin']) ?? false;
+    }
 
     public static function form(Form $form): Form
     {
@@ -62,7 +68,13 @@ class ActivityEnrollmentResource extends Resource
                     ->required(),
                 Forms\Components\Select::make('activity_id')
                     ->label('النشاط')
-                    ->relationship('activity', 'title')
+                    ->relationship(
+                        name: 'activity',
+                        titleAttribute: 'title',
+                        modifyQueryUsing: fn ($query) => auth()->user()->hasRole('super_admin')
+                            ? $query
+                            : $query->whereIn('id', auth()->user()->assignedActivities->pluck('id'))
+                    )
                     ->required(),
                 Forms\Components\Select::make('status')
                     ->label('الحالة')
@@ -107,6 +119,22 @@ class ActivityEnrollmentResource extends Resource
                     Tables\Actions\DeleteBulkAction::make(),
                 ]),
             ]);
+    }
+
+    public static function getEloquentQuery(): Builder
+    {
+        $query = parent::getEloquentQuery();
+        
+        if (auth()->user()->hasRole('super_admin')) {
+            return $query;
+        }
+        
+        if (auth()->user()->hasRole('activity_admin')) {
+            $assignedActivityIds = auth()->user()->assignedActivities->pluck('id');
+            return $query->whereIn('activity_id', $assignedActivityIds);
+        }
+        
+        return $query->whereRaw('1 = 0');
     }
 
     public static function getPages(): array

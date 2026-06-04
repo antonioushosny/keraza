@@ -23,6 +23,11 @@ class KerazaClassResource extends Resource
 
     protected static ?string $pluralModelLabel = 'الفصول';
 
+    public static function canViewAny(): bool
+    {
+        return auth()->user()?->hasRole('super_admin') ?? false;
+    }
+
     public static function form(Form $form): Form
     {
         return $form
