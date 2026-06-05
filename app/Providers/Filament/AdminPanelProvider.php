@@ -30,14 +30,18 @@ class AdminPanelProvider extends PanelProvider
             ->authGuard('admin')
             ->login(Login::class)
             ->profile(\App\Filament\Pages\Auth\EditProfile::class)
-            ->brandName('مهرجان الكرازة')
-            ->brandLogo(asset('icon.png'))
-            ->brandLogoHeight('2.5rem')
+            ->brandName('مهرجان الكرازة - كنيسة العذراء مريم المطرية')
+            ->brandLogo(fn () => view('filament.logo'))
             ->favicon(asset('icon.png'))
+            ->homeUrl('/')
             ->colors([
                 'primary' => Color::Amber,
             ])
             ->navigationItems([
+                \Filament\Navigation\NavigationItem::make('العودة للموقع الرئيسي')
+                    ->url('/')
+                    ->icon('heroicon-o-home')
+                    ->sort(-100),
                 \Filament\Navigation\NavigationItem::make('دليل تشغيل النظام')
                     ->url('/docs')
                     ->icon('heroicon-o-book-open')

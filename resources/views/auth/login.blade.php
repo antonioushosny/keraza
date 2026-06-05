@@ -21,6 +21,7 @@
         <div class="text-center mb-8">
             <img src="/icon.png" alt="Logo" class="w-24 h-24 mx-auto mb-4 rounded-full shadow-lg border-2 border-amber-500">
             <h1 class="text-2xl font-black text-gray-800">مهرجان الكرازة المرقسية</h1>
+            <p class="text-amber-600 font-bold text-sm mt-1">كنيسة العذراء مريم المطرية</p>
             <p class="text-gray-500 text-sm mt-1">تسجيل دخول أولياء الأمور</p>
         </div>
 

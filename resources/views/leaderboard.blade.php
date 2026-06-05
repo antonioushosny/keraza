@@ -184,6 +184,7 @@
                              style="width: 58px; height: 58px; border-radius: 50%; object-fit: cover; filter: drop-shadow(0 2px 8px rgba(201,168,76,0.5));">
                         <div style="text-align: center;">
                             <div style="background: linear-gradient(180deg, #f6d365 0%, #c9a84c 50%, #f6d365 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; font-size: 1.2rem; font-weight: 900; line-height: 1.3;">مهرجان الكرازة المرقسية</div>
+                            <div style="color: #ffd700; font-size: 0.85rem; font-weight: 700; margin-top: 2px;">كنيسة العذراء مريم المطرية</div>
                             <div style="color: rgba(251,191,36,0.75); font-size: 0.72rem; font-weight: 600; margin-top: 3px; letter-spacing: 0.03em;">يعظم انتصارنا بالذي أحبنا</div>
                         </div>
                         <img src="/icon.png" alt="شعار مهرجان الكرازة"
@@ -339,6 +340,8 @@
                     <div class="inline-flex items-center gap-2 text-amber-200/30 text-xs">
                         <span>✝</span>
                         <span>مهرجان الكرازة</span>
+                        <span>-</span>
+                        <span>كنيسة العذراء مريم المطرية</span>
                         <span>✝</span>
                     </div>
                 </div>
