@@ -1,3 +1,7 @@
+@php
+    $isE3dady = request()->is('e3dady') || request()->is('e3dady/*');
+    $routePrefix = $isE3dady ? 'e3dady.' : '';
+@endphp
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -19,7 +23,7 @@
                     <img src="/icon.png" class="w-10 h-10 rounded-full object-cover border border-amber-500/30" alt="Logo">
                     <h1 class="text-base sm:text-lg font-black text-gray-800">كنيسة العذراء مريم المطرية</h1>
                 </div>
-                <a href="{{ route('parent.dashboard') }}" class="text-sm font-bold text-gray-500 bg-gray-100 px-4 py-2 rounded-xl">عودة</a>
+                <a href="{{ route($routePrefix . 'parent.dashboard') }}" class="text-sm font-bold text-gray-500 bg-gray-100 px-4 py-2 rounded-xl">عودة</a>
             </div>
         </div>
 
@@ -38,7 +42,7 @@
                     </div>
                 @endif
 
-                <form action="{{ route('parent.profile') }}" method="POST" class="space-y-5">
+                <form action="{{ route($routePrefix . 'parent.profile') }}" method="POST" class="space-y-5">
                     @csrf
 
                     <div>

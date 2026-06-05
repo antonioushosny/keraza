@@ -142,6 +142,8 @@ class ParentController extends Controller
 
         $user->update($data);
 
-        return redirect()->route('parent.dashboard')->with('success', 'تم تحديث بيانات الحساب بنجاح!');
+        $referer = request()->headers->get('referer', '');
+        $routeName = (request()->is('e3dady') || request()->is('e3dady/*') || str_contains($referer, '/e3dady')) ? 'e3dady.parent.dashboard' : 'parent.dashboard';
+        return redirect()->route($routeName)->with('success', 'تم تحديث بيانات الحساب بنجاح!');
     }
 }

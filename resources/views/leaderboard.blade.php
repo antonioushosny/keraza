@@ -1,3 +1,7 @@
+@php
+    $isE3dady = request()->is('e3dady') || request()->is('e3dady/*');
+    $routePrefix = $isE3dady ? 'e3dady.' : '';
+@endphp
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -166,10 +170,10 @@
 
             {{-- Top Action Bar --}}
             <div class="flex justify-between items-center mb-6">
-                <a href="/admin" class="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 border border-gray-700 shadow-sm">
+                <a href="{{ $isE3dady ? '/e3dady/admin' : '/admin' }}" class="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 border border-gray-700 shadow-sm">
                     🔒 لوحة التحكم الإدارية
                 </a>
-                <a href="{{ route('parent.dashboard') }}" class="px-4 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 border border-amber-400 shadow-sm">
+                <a href="{{ route($routePrefix . 'parent.dashboard') }}" class="px-4 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 border border-amber-400 shadow-sm">
                     👤 حساب ولي الأمر
                 </a>
             </div>
@@ -218,12 +222,12 @@
                 {{-- Class Filter Buttons --}}
                 @if($classes->count() > 0)
                 <div class="flex flex-wrap justify-center gap-2 mb-8">
-                    <a href="{{ route('rankings', ['season_id' => $seasonId]) }}"
+                    <a href="{{ route($routePrefix . 'rankings', ['season_id' => $seasonId]) }}"
                        class="class-btn px-4 py-2 rounded-xl text-sm font-bold border border-amber-500/30 {{ !$classId ? 'active' : 'text-amber-300/70 hover:text-amber-200' }}">
                         الكل
                     </a>
                     @foreach($classes as $class)
-                        <a href="{{ route('rankings', ['season_id' => $seasonId, 'class_id' => $class->id]) }}"
+                        <a href="{{ route($routePrefix . 'rankings', ['season_id' => $seasonId, 'class_id' => $class->id]) }}"
                            class="class-btn px-4 py-2 rounded-xl text-sm font-bold border border-amber-500/30 {{ $classId == $class->id ? 'active' : 'text-amber-300/70 hover:text-amber-200' }}">
                             {{ $class->name }}
                         </a>

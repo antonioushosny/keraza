@@ -19,18 +19,17 @@ use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 use App\Filament\Pages\Auth\Login;
 
-class AdminPanelProvider extends PanelProvider
+class E3dadyPanelProvider extends PanelProvider
 {
     public function panel(Panel $panel): Panel
     {
         return $panel
-            ->default()
-            ->id('admin')
-            ->path('admin')
+            ->id('e3dady_admin')
+            ->path('e3dady/admin')
             ->authGuard('admin')
             ->login(Login::class)
             ->profile(\App\Filament\Pages\Auth\EditProfile::class)
-            ->brandName('مهرجان الكرازة - كنيسة العذراء مريم المطرية')
+            ->brandName('مهرجان الكرازة (إعدادي) - كنيسة العذراء مريم المطرية')
             ->brandLogo(fn () => view('filament.logo'))
             ->favicon(asset('icon.png'))
             ->colors([
@@ -38,7 +37,7 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->navigationItems([
                 \Filament\Navigation\NavigationItem::make('العودة للموقع الرئيسي')
-                    ->url('/')
+                    ->url('/e3dady')
                     ->icon('heroicon-o-home')
                     ->sort(-100),
                 \Filament\Navigation\NavigationItem::make('دليل تشغيل النظام')

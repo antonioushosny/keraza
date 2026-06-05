@@ -23,6 +23,22 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        if (!app()->runningInConsole()) {
+            $isE3dady = false;
+            if (request()->is('e3dady') || request()->is('e3dady/*')) {
+                $isE3dady = true;
+            } elseif (request()->is('livewire/*') || request()->ajax()) {
+                $referer = request()->headers->get('referer', '');
+                if (str_contains($referer, '/e3dady')) {
+                    $isE3dady = true;
+                }
+            }
+
+            if ($isE3dady) {
+                config(['database.default' => 'sqlite_e3dady']);
+                config(['session.cookie' => 'laravel_session_e3dady']);
+            }
+        }
         FilamentIcon::register([
             'forms::components.text-input.actions.show-password' => 'heroicon-o-eye-slash',
             'forms::components.text-input.actions.hide-password' => 'heroicon-o-eye',

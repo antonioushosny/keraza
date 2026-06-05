@@ -11,7 +11,9 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        $middleware->redirectTo(
+            fn ($request) => ($request->is('e3dady') || $request->is('e3dady/*')) ? '/e3dady/login' : '/login'
+        );
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

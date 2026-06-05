@@ -20,15 +20,19 @@ class LoginController extends Controller
             'password' => ['required', 'string'],
         ]);
 
+        $credentials['type'] = 'parent';
+
         if (Auth::attempt($credentials, $request->boolean('remember'))) {
             $request->session()->regenerate();
 
             // Redirect based on role
-            if (auth()->user()->hasRole('super_admin') || auth()->user()->roles()->count() > 0) {
-                return redirect()->intended('/admin');
+            $referer = request()->headers->get('referer', '');
+            $prefix = (request()->is('e3dady') || request()->is('e3dady/*') || str_contains($referer, '/e3dady')) ? '/e3dady' : '';
+            if (auth()->user()->type === 'admin') {
+                return redirect($prefix . '/admin');
             }
 
-            return redirect()->intended('/parent');
+            return redirect($prefix . '/parent');
         }
 
         return back()->withErrors([
@@ -41,6 +45,8 @@ class LoginController extends Controller
         Auth::logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
-        return redirect('/');
+        $referer = request()->headers->get('referer', '');
+        $prefix = (request()->is('e3dady') || request()->is('e3dady/*') || str_contains($referer, '/e3dady')) ? '/e3dady' : '';
+        return redirect($prefix . '/');
     }
 }

@@ -1,3 +1,7 @@
+@php
+    $isE3dady = request()->is('e3dady') || request()->is('e3dady/*');
+    $routePrefix = $isE3dady ? 'e3dady.' : '';
+@endphp
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -30,8 +34,8 @@
                     <h1 class="text-base sm:text-lg font-black text-gray-800">كنيسة العذراء مريم المطرية</h1>
                 </div>
                 <div class="flex items-center gap-3">
-                    <a href="{{ route('parent.profile') }}" class="text-sm font-bold text-amber-600 bg-amber-50 px-4 py-2 rounded-xl">تعديل الحساب</a>
-                    <form action="{{ route('logout') }}" method="POST">
+                    <a href="{{ route($routePrefix . 'parent.profile') }}" class="text-sm font-bold text-amber-600 bg-amber-50 px-4 py-2 rounded-xl">تعديل الحساب</a>
+                    <form action="{{ route($routePrefix . 'logout') }}" method="POST">
                         @csrf
                         <button type="submit" class="text-sm font-bold text-red-500 bg-red-50 px-4 py-2 rounded-xl">خروج</button>
                     </form>
@@ -84,7 +88,7 @@
                             <div class="flex items-center justify-between mb-6">
                                 <div class="flex items-center gap-4">
                                     <div class="relative group">
-                                        <form action="{{ route('parent.student.upload-image', $child->id) }}" method="POST" enctype="multipart/form-data" id="upload-form-{{ $child->id }}">
+                                        <form action="{{ route($routePrefix . 'parent.student.upload-image', $child->id) }}" method="POST" enctype="multipart/form-data" id="upload-form-{{ $child->id }}">
                                             @csrf
                                             <label class="cursor-pointer block relative">
                                                 <input type="file" name="profile_image" accept="image/*" class="hidden" onchange="document.getElementById('upload-form-{{ $child->id }}').submit()">

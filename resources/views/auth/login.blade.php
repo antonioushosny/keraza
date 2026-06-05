@@ -1,3 +1,7 @@
+@php
+    $isE3dady = request()->is('e3dady') || request()->is('e3dady/*');
+    $routePrefix = $isE3dady ? 'e3dady.' : '';
+@endphp
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -26,7 +30,7 @@
         </div>
 
         <div class="login-card p-8">
-            <form method="POST" action="{{ route('login') }}">
+            <form method="POST" action="{{ route($routePrefix . 'login') }}">
                 @csrf
                 <div class="mb-6">
                     <label class="block text-gray-700 text-sm font-bold mb-2" for="phone">رقم الموبايل</label>
@@ -55,7 +59,7 @@
         </div>
         
         <div class="text-center mt-8">
-            <a href="/" class="text-amber-600 font-bold hover:underline">العودة للرئيسية</a>
+            <a href="{{ $isE3dady ? '/e3dady' : '/' }}" class="text-amber-600 font-bold hover:underline">العودة للرئيسية</a>
         </div>
     </div>
 </body>
