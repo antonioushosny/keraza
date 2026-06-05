@@ -80,6 +80,7 @@ class AttendanceResource extends Resource
                         'present' => 'حاضر',
                         'absent' => 'غائب',
                     ])
+                    ->default('absent')
                     ->required(),
                 Forms\Components\Textarea::make('notes')
                     ->label('ملاحظات')
