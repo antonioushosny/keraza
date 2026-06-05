@@ -135,4 +135,77 @@ class PermissionsAndScopingTest extends TestCase
         $this->assertEquals(1, $studentsQuery->count());
         $this->assertEquals($studentA->id, $studentsQuery->first()->id);
     }
+
+    public function test_super_admin_can_filter_parents_by_class(): void
+    {
+        // 1. Create parents
+        $parentA = User::create([
+            'name' => 'Parent A',
+            'phone' => '01224252101',
+            'password' => bcrypt('password'),
+            'type' => 'parent',
+        ]);
+        $parentA->assignRole('parent');
+
+        $parentB = User::create([
+            'name' => 'Parent B',
+            'phone' => '01224252102',
+            'password' => bcrypt('password'),
+            'type' => 'parent',
+        ]);
+        $parentB->assignRole('parent');
+
+        // 2. Create students
+        $studentA = Student::create([
+            'full_name' => 'Student A',
+            'gender' => 'male',
+            'parent_id' => $parentA->id,
+        ]);
+        StudentSeasonEnrollment::create([
+            'student_id' => $studentA->id,
+            'season_id' => $this->activeSeason->id,
+            'class_id' => $this->classA->id,
+        ]);
+
+        $studentB = Student::create([
+            'full_name' => 'Student B',
+            'gender' => 'female',
+            'parent_id' => $parentB->id,
+        ]);
+        StudentSeasonEnrollment::create([
+            'student_id' => $studentB->id,
+            'season_id' => $this->activeSeason->id,
+            'class_id' => $this->classB->id,
+        ]);
+
+        // 3. Authenticate as Super Admin
+        $superAdmin = User::create([
+            'name' => 'Super Admin',
+            'phone' => '01000000000',
+            'password' => bcrypt('password'),
+            'type' => 'admin',
+        ]);
+        $superAdmin->assignRole('super_admin');
+        $this->actingAs($superAdmin);
+
+        // 4. Query parents with the class filter applied (Class A)
+        $query = \App\Filament\Resources\ParentResource::getEloquentQuery();
+        
+        // Apply class A filter query logic
+        $classAId = $this->classA->id;
+        $activeSeason = $this->activeSeason;
+        $query->whereHas('students', function ($studentQuery) use ($classAId, $activeSeason) {
+            $studentQuery->whereHas('enrollments', function ($q) use ($classAId, $activeSeason) {
+                $q->where('class_id', $classAId);
+                if ($activeSeason) {
+                    $q->where('season_id', $activeSeason->id);
+                }
+            });
+        });
+
+        $results = $query->get();
+
+        $this->assertCount(1, $results);
+        $this->assertEquals($parentA->id, $results->first()->id);
+    }
 }

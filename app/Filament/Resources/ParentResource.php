@@ -84,7 +84,23 @@ class ParentResource extends Resource
                     ->listWithLineBreaks(),
             ])
             ->filters([
-                //
+                Tables\Filters\SelectFilter::make('class')
+                    ->label('الفصل')
+                    ->options(\App\Models\KerazaClass::all()->pluck('name', 'id'))
+                    ->query(function (\Illuminate\Database\Eloquent\Builder $query, array $data) {
+                        if (!empty($data['value'])) {
+                            $activeSeason = \App\Models\Season::active();
+                            $query->whereHas('students', function ($studentQuery) use ($data, $activeSeason) {
+                                $studentQuery->whereHas('enrollments', function ($q) use ($data, $activeSeason) {
+                                    $q->where('class_id', $data['value']);
+                                    if ($activeSeason) {
+                                        $q->where('season_id', $activeSeason->id);
+                                    }
+                                });
+                            });
+                        }
+                    })
+                    ->visible(fn () => auth()->user()->hasRole('super_admin')),
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
