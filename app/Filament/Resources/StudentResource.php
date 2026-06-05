@@ -293,37 +293,116 @@ class StudentResource extends Resource
                         $errors = [];
                         $rowNum = 1;
 
+                        $headersMap = [
+                            'student_name_default' => -1,
+                            'student_name_first' => -1,
+                            'student_name_last' => -1,
+                            'gender' => -1,
+                            'birth_date' => -1,
+                            'notes' => -1,
+                            'parent_name' => -1,
+                            'parent_phone' => -1,
+                        ];
+
                         foreach ($reader->getSheetIterator() as $sheet) {
                             $isHeader = true;
                             foreach ($sheet->getRowIterator() as $row) {
+                                $cells = $row->getCells();
+                                $rowValues = [];
+                                foreach ($cells as $cell) {
+                                    $val = $cell->getValue();
+                                    if ($val instanceof \DateTimeInterface) {
+                                        $rowValues[] = $val;
+                                    } else {
+                                        $rowValues[] = trim($val ?? '');
+                                    }
+                                }
+
                                 if ($isHeader) {
                                     $isHeader = false;
+                                    foreach ($rowValues as $index => $headerVal) {
+                                        if ($headerVal instanceof \DateTimeInterface) {
+                                            continue;
+                                        }
+                                        $headerVal = preg_replace('/\s+/', ' ', trim($headerVal));
+                                        if ($headerVal === 'اسم المخدوم') {
+                                            $headersMap['student_name_default'] = $index;
+                                        } elseif ($headerVal === 'الاسم') {
+                                            $headersMap['student_name_first'] = $index;
+                                        } elseif ($headerVal === 'اللقب') {
+                                            $headersMap['student_name_last'] = $index;
+                                        } elseif (in_array($headerVal, ['الجنس', 'النوع'])) {
+                                            $headersMap['gender'] = $index;
+                                        } elseif ($headerVal === 'تاريخ الميلاد') {
+                                            $headersMap['birth_date'] = $index;
+                                        } elseif (in_array($headerVal, ['ملاحظات', 'الملاحظات', 'ملاحظة'])) {
+                                            $headersMap['notes'] = $index;
+                                        } elseif (in_array($headerVal, ['اسم ولي الأمر', 'اسم ولى الامر'])) {
+                                            $headersMap['parent_name'] = $index;
+                                        } elseif (in_array($headerVal, ['رقم موبايل ولي الأمر', 'رقم موبايل ولى الامر', 'موبايل', 'الهاتف', 'التليفون'])) {
+                                            $headersMap['parent_phone'] = $index;
+                                        }
+                                    }
+
+                                    // Fallback if basic headers are not found
+                                    $hasFoundHeaders = ($headersMap['student_name_default'] !== -1 || $headersMap['student_name_last'] !== -1 || $headersMap['student_name_first'] !== -1) && $headersMap['parent_phone'] !== -1;
+                                    if (!$hasFoundHeaders) {
+                                        $headersMap['student_name_default'] = 0;
+                                        $headersMap['gender'] = 1;
+                                        $headersMap['birth_date'] = 2;
+                                        $headersMap['notes'] = 3;
+                                        $headersMap['parent_name'] = 4;
+                                        $headersMap['parent_phone'] = 5;
+                                    }
                                     continue;
                                 }
                                 $rowNum++;
 
-                                $cells = $row->getCells();
-                                $rowValues = [];
-                                foreach ($cells as $cell) {
-                                    $rowValues[] = trim($cell->getValue() ?? '');
+                                // Retrieve mapped values
+                                $studentName = '';
+                                if ($headersMap['student_name_default'] !== -1) {
+                                    $studentName = isset($rowValues[$headersMap['student_name_default']]) && !($rowValues[$headersMap['student_name_default']] instanceof \DateTimeInterface) ? trim($rowValues[$headersMap['student_name_default']]) : '';
+                                } elseif ($headersMap['student_name_last'] !== -1 || $headersMap['student_name_first'] !== -1) {
+                                    $lastName = $headersMap['student_name_last'] !== -1 && isset($rowValues[$headersMap['student_name_last']]) && !($rowValues[$headersMap['student_name_last']] instanceof \DateTimeInterface) ? trim($rowValues[$headersMap['student_name_last']]) : '';
+                                    $firstName = $headersMap['student_name_first'] !== -1 && isset($rowValues[$headersMap['student_name_first']]) && !($rowValues[$headersMap['student_name_first']] instanceof \DateTimeInterface) ? trim($rowValues[$headersMap['student_name_first']]) : '';
+                                    
+                                    if (!empty($firstName) && !empty($lastName)) {
+                                        if (str_starts_with($lastName, $firstName)) {
+                                            $studentName = $lastName;
+                                        } else {
+                                            $studentName = $firstName . ' ' . $lastName;
+                                        }
+                                    } elseif (!empty($lastName)) {
+                                        $studentName = $lastName;
+                                    } else {
+                                        $studentName = $firstName;
+                                    }
                                 }
 
-                                if (count($rowValues) < 6) {
-                                    $rowValues = array_pad($rowValues, 6, '');
-                                }
-
-                                $studentName = $rowValues[0];
-                                $genderInput = $rowValues[1];
-                                $birthDateInput = $rowValues[2];
-                                $notes = $rowValues[3];
-                                $parentName = $rowValues[4];
-                                $parentPhone = $rowValues[5];
+                                $genderInput = $headersMap['gender'] !== -1 && isset($rowValues[$headersMap['gender']]) && !($rowValues[$headersMap['gender']] instanceof \DateTimeInterface) ? trim($rowValues[$headersMap['gender']]) : '';
+                                $birthDateInput = $headersMap['birth_date'] !== -1 && isset($rowValues[$headersMap['birth_date']]) ? $rowValues[$headersMap['birth_date']] : '';
+                                $notes = $headersMap['notes'] !== -1 && isset($rowValues[$headersMap['notes']]) && !($rowValues[$headersMap['notes']] instanceof \DateTimeInterface) ? trim($rowValues[$headersMap['notes']]) : '';
+                                $parentName = $headersMap['parent_name'] !== -1 && isset($rowValues[$headersMap['parent_name']]) && !($rowValues[$headersMap['parent_name']] instanceof \DateTimeInterface) ? trim($rowValues[$headersMap['parent_name']]) : '';
+                                $parentPhone = $headersMap['parent_phone'] !== -1 && isset($rowValues[$headersMap['parent_phone']]) && !($rowValues[$headersMap['parent_phone']] instanceof \DateTimeInterface) ? trim($rowValues[$headersMap['parent_phone']]) : '';
 
                                 // Basic validation
                                 if (empty($studentName)) {
                                     $errors[] = "الصف {$rowNum}: اسم المخدوم فارغ.";
                                     $skippedCount++;
                                     continue;
+                                }
+
+                                // Format phone number
+                                $parentPhone = trim($parentPhone);
+                                $parentPhone = preg_replace('/[^\d+]/', '', $parentPhone);
+                                if (str_starts_with($parentPhone, '+20')) {
+                                    $parentPhone = '0' . substr($parentPhone, 3);
+                                } elseif (str_starts_with($parentPhone, '0020')) {
+                                    $parentPhone = '0' . substr($parentPhone, 4);
+                                } elseif (str_starts_with($parentPhone, '20') && strlen($parentPhone) === 12) {
+                                    $parentPhone = '0' . substr($parentPhone, 2);
+                                } elseif (strlen($parentPhone) === 10 && !str_starts_with($parentPhone, '0')) {
+                                    $parentPhone = '0' . $parentPhone;
                                 }
 
                                 if (empty($parentPhone)) {
@@ -341,15 +420,14 @@ class StudentResource extends Resource
 
                                 // 2. Gender validation
                                 $genderInputClean = strtolower(trim($genderInput));
-                                if (!in_array($genderInputClean, ['ذكر', 'أنثى', 'male', 'female'])) {
-                                    $errors[] = "الصف {$rowNum} (المخدوم: {$studentName}): الجنس '{$genderInput}' غير صالح. يجب أن يكون (ذكر/أنثى/male/female).";
+                                if (in_array($genderInputClean, ['ذكر', 'male', 'm'])) {
+                                    $gender = 'male';
+                                } elseif (in_array($genderInputClean, ['أنثى', 'female', 'f'])) {
+                                    $gender = 'female';
+                                } else {
+                                    $errors[] = "الصف {$rowNum} (المخدوم: {$studentName}): الجنس '{$genderInput}' غير صالح. يجب أن يكون (ذكر/أنثى/male/female/m/f).";
                                     $skippedCount++;
                                     continue;
-                                }
-
-                                $gender = 'male';
-                                if ($genderInputClean === 'أنثى' || $genderInputClean === 'female') {
-                                    $gender = 'female';
                                 }
 
                                 // 3. Birth date validation
@@ -363,9 +441,23 @@ class StudentResource extends Resource
                                 if ($birthDateInput instanceof \DateTimeInterface) {
                                     $birthDate = $birthDateInput->format('Y-m-d');
                                 } else {
-                                    $parsedTime = strtotime($birthDateInput);
+                                    // Convert Arabic/Hindi numerals to English
+                                    $arabic = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
+                                    $num = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
+                                    $cleanedDate = str_replace($arabic, $num, trim($birthDateInput));
+                                    
+                                    // Replace dots and slashes with dashes
+                                    $cleanedDate = str_replace(['.', '/'], '-', $cleanedDate);
+                                    
+                                    // Now try parsing
+                                    $parsedTime = strtotime($cleanedDate);
                                     if ($parsedTime !== false) {
                                         $birthDate = date('Y-m-d', $parsedTime);
+                                    } else {
+                                        // Fallback manual match
+                                        if (preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $cleanedDate)) {
+                                            $birthDate = $cleanedDate;
+                                        }
                                     }
                                 }
 
@@ -373,6 +465,17 @@ class StudentResource extends Resource
                                     $errors[] = "الصف {$rowNum} (المخدوم: {$studentName}): تاريخ الميلاد '{$birthDateInput}' غير صالح أو في المستقبل.";
                                     $skippedCount++;
                                     continue;
+                                }
+
+                                // Extract parent name if empty
+                                if (empty($parentName)) {
+                                    $nameParts = preg_split('/\s+/', trim($studentName));
+                                    if (count($nameParts) > 1) {
+                                        array_shift($nameParts);
+                                        $parentName = implode(' ', $nameParts);
+                                    } else {
+                                        $parentName = 'ولي أمر ' . $studentName;
+                                    }
                                 }
 
                                 // Create/Get Parent User
