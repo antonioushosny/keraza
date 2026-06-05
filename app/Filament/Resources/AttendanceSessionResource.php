@@ -253,57 +253,83 @@ class AttendanceSessionResource extends Resource
 
                         $headers = fgetcsv($file);
 
-                        $sessionCreated = false;
-                        $attendanceSession = null;
                         $successCount = 0;
                         $errorsCount = 0;
 
-                        while (($row = fgetcsv($file)) !== false) {
-                            if (count($row) < 4) continue;
+                        \Illuminate\Support\Facades\DB::transaction(function () use ($file, $activeSeason, &$successCount, &$errorsCount) {
+                            $sessions = [];
 
-                            $studentCode = trim($row[0]);
-                            $date = trim($row[2]);
-                            $status = trim($row[3]);
+                            while (($row = fgetcsv($file)) !== false) {
+                                if (count($row) < 4) continue;
 
-                            if (!in_array($status, ['present', 'absent', 'excused'])) {
-                                $status = 'present';
-                            }
+                                $studentCode = trim($row[0]);
+                                $dateStr = trim($row[2]);
+                                $status = trim($row[3]);
 
-                            $student = \App\Models\Student::where('code', $studentCode)->first();
-                            if (!$student) {
-                                $errorsCount++;
-                                continue;
-                            }
+                                // Normalize date
+                                $arabic = ['٠','١','٢','٣','٤','٥','٦','٧','٨','٩'];
+                                $num = ['0','1','2','3','4','5','6','7','8','9'];
+                                $dateStr = str_replace($arabic, $num, $dateStr);
+                                $cleanedDate = str_replace(['.', '/'], '-', $dateStr);
 
-                            $enrollment = \App\Models\StudentSeasonEnrollment::where('student_id', $student->id)
-                                ->where('season_id', $activeSeason->id)
-                                ->first();
+                                $date = null;
+                                $parsedTime = strtotime($cleanedDate);
+                                if ($parsedTime !== false) {
+                                    $date = date('Y-m-d', $parsedTime);
+                                } else {
+                                    if (preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $cleanedDate)) {
+                                        $date = $cleanedDate;
+                                    }
+                                }
 
-                            if (!$enrollment) {
-                                $errorsCount++;
-                                continue;
-                            }
+                                if (!$date) {
+                                    $errorsCount++;
+                                    continue;
+                                }
 
-                            if (!$sessionCreated) {
-                                $attendanceSession = \App\Models\AttendanceSession::firstOrCreate([
-                                    'season_id' => $activeSeason->id,
-                                    'class_id' => $enrollment->class_id,
-                                    'date' => $date,
+                                if (!in_array($status, ['present', 'absent', 'excused'])) {
+                                    $status = 'present';
+                                }
+
+                                $student = \App\Models\Student::where('code', $studentCode)->first();
+                                if (!$student) {
+                                    $errorsCount++;
+                                    continue;
+                                }
+
+                                $enrollment = \App\Models\StudentSeasonEnrollment::where('student_id', $student->id)
+                                    ->where('season_id', $activeSeason->id)
+                                    ->first();
+
+                                if (!$enrollment) {
+                                    $errorsCount++;
+                                    continue;
+                                }
+
+                                $classId = $enrollment->class_id;
+                                $sessionKey = $classId . '_' . $date;
+
+                                if (!isset($sessions[$sessionKey])) {
+                                    $sessions[$sessionKey] = \App\Models\AttendanceSession::firstOrCreate([
+                                        'season_id' => $activeSeason->id,
+                                        'class_id' => $classId,
+                                        'date' => $date,
+                                    ], [
+                                        'notes' => 'مستورد تلقائياً من شيت إكسيل',
+                                    ]);
+                                }
+                                $attendanceSession = $sessions[$sessionKey];
+
+                                \App\Models\Attendance::updateOrCreate([
+                                    'attendance_session_id' => $attendanceSession->id,
+                                    'student_season_enrollment_id' => $enrollment->id,
                                 ], [
-                                    'notes' => 'مستورد تلقائياً من شيت إكسيل',
+                                    'status' => $status,
                                 ]);
-                                $sessionCreated = true;
+
+                                $successCount++;
                             }
-
-                            \App\Models\Attendance::updateOrCreate([
-                                'attendance_session_id' => $attendanceSession->id,
-                                'student_season_enrollment_id' => $enrollment->id,
-                            ], [
-                                'status' => $status,
-                            ]);
-
-                            $successCount++;
-                        }
+                        });
                         fclose($file);
 
                         \Filament\Notifications\Notification::make()

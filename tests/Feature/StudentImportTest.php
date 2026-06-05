@@ -646,5 +646,73 @@ class StudentImportTest extends TestCase
         // Cleanup
         unlink($tempFile);
     }
+
+    public function test_can_import_attendance_and_normalise_date(): void
+    {
+        $user = User::create([
+            'name' => 'Admin User',
+            'phone' => '01288226619',
+            'password' => bcrypt('password'),
+            'type' => 'admin',
+        ]);
+        $user->assignRole('super_admin');
+
+        // Create student
+        $student = Student::create([
+            'full_name' => 'مينا جرجس',
+            'gender' => 'male',
+            'code' => 'ST1001',
+        ]);
+
+        // Enroll
+        StudentSeasonEnrollment::create([
+            'student_id' => $student->id,
+            'season_id' => $this->activeSeason->id,
+            'class_id' => $this->classA->id,
+        ]);
+
+        // Create temporary CSV data
+        $tempDir = storage_path('app');
+        if (!file_exists($tempDir)) {
+            mkdir($tempDir, 0777, true);
+        }
+        $csvPath = $tempDir . '/temp_attendance_' . uniqid() . '.csv';
+        $file = fopen($csvPath, 'w');
+        
+        // Write headers
+        fputcsv($file, ['كود المخدوم', 'اسم المخدوم', 'التاريخ', 'الحالة (present, absent, excused)']);
+        // Write row with d/m/Y format
+        fputcsv($file, ['ST1001', 'مينا جرجس', '30/05/2026', 'present']);
+        fclose($file);
+
+        // Upload/execute import action via Livewire/Filament
+        $storagePath = 'temp_attendance_' . uniqid() . '.csv';
+        Storage::disk('public')->put($storagePath, file_get_contents($csvPath));
+        unlink($csvPath);
+
+        \Livewire\Livewire::actingAs($user, 'admin')
+            ->test(\App\Filament\Resources\AttendanceSessionResource\Pages\ListAttendanceSessions::class)
+            ->callTableAction('import_attendance', data: [
+                'file' => $storagePath,
+            ]);
+
+        // Assert session created with proper date format
+        $this->assertDatabaseHas('attendance_sessions', [
+            'season_id' => $this->activeSeason->id,
+            'class_id' => $this->classA->id,
+            'date' => '2026-05-30',
+        ]);
+
+        // Assert attendance recorded
+        $session = \App\Models\AttendanceSession::where('date', '2026-05-30')->first();
+        $this->assertNotNull($session);
+        $this->assertDatabaseHas('attendances', [
+            'attendance_session_id' => $session->id,
+            'status' => 'present',
+        ]);
+
+        // Cleanup
+        Storage::disk('public')->delete($storagePath);
+    }
 }
 
