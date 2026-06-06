@@ -24,6 +24,30 @@ class MemorizationItemResource extends Resource
 
     public static function form(Form $form): Form
     {
+        $shouldHide = function ($get, $record) {
+            $search = $get('../../student_search');
+            if (blank($search)) {
+                return false;
+            }
+
+            $studentName = '';
+            if ($record && $record->enrollment?->student) {
+                $studentName = $record->enrollment->student->full_name;
+            } else {
+                $studentName = $get('student_name') ?? '';
+            }
+
+            $normalize = function ($str) {
+                $str = trim($str);
+                $str = str_replace(['أ', 'إ', 'آ'], 'ا', $str);
+                $str = str_replace('ة', 'ه', $str);
+                $str = str_replace('ى', 'ي', $str);
+                return $str;
+            };
+
+            return !str_contains($normalize($studentName), $normalize($search));
+        };
+
         return $form
             ->schema([
                 Forms\Components\Hidden::make('season_id')
@@ -69,38 +93,64 @@ class MemorizationItemResource extends Resource
 
                 Forms\Components\Section::make('رصد تسميع المخدومين')
                     ->schema([
+                        Forms\Components\TextInput::make('student_search')
+                            ->label('بحث بالاسم')
+                            ->placeholder('اكتب اسم المخدوم للبحث...')
+                            ->live()
+                            ->dehydrated(false)
+                            ->columnSpanFull(),
+
+                        Forms\Components\Placeholder::make('search_style')
+                            ->hiddenLabel()
+                            ->content(new \Illuminate\Support\HtmlString('
+                                <style>
+                                    .fi-fo-repeater-item:has([data-search-hidden="true"]),
+                                    .filament-forms-repeater-item:has([data-search-hidden="true"]) {
+                                        display: none !important;
+                                    }
+                                </style>
+                            ')),
+
                         Forms\Components\Placeholder::make('headers')
                             ->label('')
                             ->content(new \Illuminate\Support\HtmlString('
                                 <div style="display: flex; direction: rtl; font-weight: bold; font-size: 0.875rem; border-bottom: 1px solid rgba(156, 163, 175, 0.3); padding-bottom: 8px; margin-bottom: 12px; color: #9ca3af; padding-left: 16px; padding-right: 16px;">
                                     <div style="flex: 8; text-align: right;">المخدوم</div>
-                                    <div style="flex: 4; text-align: left; padding-left: 20px;">تم الحفظ</div>
+                                    <div style="flex: 4; text-align: left; padding-left: 20px;">الدرجة</div>
                                 </div>
                             ')),
 
                         Forms\Components\Repeater::make('scores')
                             ->relationship()
                             ->schema([
-                                Forms\Components\Hidden::make('student_season_enrollment_id'),
-                                Forms\Components\Placeholder::make('student_name')
-                                    ->hiddenLabel()
-                                    ->content(function ($record, $get) {
-                                        if ($record && $record->enrollment?->student) {
-                                            return $record->enrollment->student->full_name;
+                                Forms\Components\Grid::make(12)
+                                    ->schema([
+                                        Forms\Components\Hidden::make('student_season_enrollment_id'),
+                                        Forms\Components\Placeholder::make('student_name')
+                                            ->hiddenLabel()
+                                            ->content(function ($record, $get) {
+                                                if ($record && $record->enrollment?->student) {
+                                                    return $record->enrollment->student->full_name;
+                                                }
+                                                return $get('student_name') ?? '—';
+                                            })
+                                            ->columnSpan(8),
+                                        Forms\Components\TextInput::make('score')
+                                            ->hiddenLabel()
+                                            ->numeric()
+                                            ->required()
+                                            ->default(0)
+                                            ->columnSpan(4),
+                                    ])
+                                    ->extraAttributes(function ($get, $record) use ($shouldHide) {
+                                        if ($shouldHide($get, $record)) {
+                                            return [
+                                                'data-search-hidden' => 'true',
+                                            ];
                                         }
-                                        return $get('student_name') ?? '—';
-                                    })
-                                    ->columnSpan(8),
-                                Forms\Components\Toggle::make('score')
-                                    ->hiddenLabel()
-                                    ->onColor('success')
-                                    ->offColor('danger')
-                                    ->required()
-                                    ->dehydrateStateUsing(fn ($state) => $state ? 100 : 0)
-                                    ->formatStateUsing(fn ($state) => $state >= 100)
-                                    ->columnSpan(4),
+                                        return [];
+                                    }),
                             ])
-                            ->columns(12)
                             ->addable(false)
                             ->deletable(false)
                             ->reorderable(false)
@@ -140,7 +190,7 @@ class MemorizationItemResource extends Resource
                         $headers = [
                             'student_code' => 'كود المخدوم',
                             'student_name' => 'اسم المخدوم',
-                            'is_memorized' => 'تم الحفظ (1 للتم، 0 للنقص)',
+                            'score' => 'الدرجة',
                         ];
 
                         $callback = function () use ($enrollments, $headers, $record) {
@@ -156,7 +206,7 @@ class MemorizationItemResource extends Resource
                                 fputcsv($file, [
                                     $enrollment->student->code,
                                     $enrollment->student->full_name,
-                                    ($existingScore && $existingScore->score >= 100) ? 1 : 0,
+                                    $existingScore ? $existingScore->score : 0,
                                 ]);
                             }
                             fclose($file);
@@ -210,7 +260,7 @@ class MemorizationItemResource extends Resource
                             if (count($row) < 3) continue;
 
                             $studentCode = trim($row[0]);
-                            $isMemorized = trim($row[2]) === '1' || trim($row[2]) === 'true';
+                            $score = floatval(trim($row[2]));
 
                             $student = \App\Models\Student::where('code', $studentCode)->first();
                             if (!$student) {
@@ -231,8 +281,8 @@ class MemorizationItemResource extends Resource
                                 'memorization_item_id' => $record->id,
                                 'student_season_enrollment_id' => $enrollment->id,
                             ], [
-                                'score' => $isMemorized ? 100 : 0,
-                                'accuracy' => 100,
+                                'score' => $score,
+                                'accuracy' => $score,
                             ]);
 
                             $successCount++;

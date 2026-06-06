@@ -79,10 +79,6 @@ class MemorizationScoreResource extends Resource
                     ->label('الدرجة')
                     ->numeric()
                     ->required(),
-                Forms\Components\TextInput::make('accuracy')
-                    ->label('الدقة (%)')
-                    ->numeric()
-                    ->default(100),
                 Forms\Components\Textarea::make('notes')
                     ->label('ملاحظات'),
             ]);
@@ -93,13 +89,26 @@ class MemorizationScoreResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('enrollment.student.full_name')->label('المخدوم')->searchable(),
-                Tables\Columns\TextColumn::make('memorizationItem.title')->label('البند'),
-                Tables\Columns\TextColumn::make('score')->label('الدرجة'),
-                Tables\Columns\TextColumn::make('accuracy')->label('الدقة')->suffix('%'),
+                Tables\Columns\TextColumn::make('memorizationItem.title')
+                    ->label('البند')
+                    ->description(fn ($record) => $record->memorizationItem?->class?->name),
+                Tables\Columns\TextColumn::make('score')->label('الدرجة')->sortable(),
             ])
             ->defaultSort('created_at', 'desc')
             ->filters([
                 Tables\Filters\SelectFilter::make('memorizationItem')->relationship('memorizationItem', 'title')->label('البند'),
+                Tables\Filters\SelectFilter::make('class_id')
+                    ->label('الفصل')
+                    ->options(\App\Models\KerazaClass::pluck('name', 'id'))
+                    ->query(function (\Illuminate\Database\Eloquent\Builder $query, array $data) {
+                        if (empty($data['value'])) {
+                            return;
+                        }
+                        $query->whereHas('memorizationItem', function ($q) use ($data) {
+                            $q->where('class_id', $data['value']);
+                        });
+                    })
+                    ->visible(fn () => auth()->user()?->hasRole('super_admin') ?? false),
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),

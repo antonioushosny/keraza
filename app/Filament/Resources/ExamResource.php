@@ -30,6 +30,30 @@ class ExamResource extends Resource
 
     public static function form(Form $form): Form
     {
+        $shouldHide = function ($get, $record) {
+            $search = $get('../../student_search');
+            if (blank($search)) {
+                return false;
+            }
+
+            $studentName = '';
+            if ($record && $record->enrollment?->student) {
+                $studentName = $record->enrollment->student->full_name;
+            } else {
+                $studentName = $get('student_name') ?? '';
+            }
+
+            $normalize = function ($str) {
+                $str = trim($str);
+                $str = str_replace(['أ', 'إ', 'آ'], 'ا', $str);
+                $str = str_replace('ة', 'ه', $str);
+                $str = str_replace('ى', 'ي', $str);
+                return $str;
+            };
+
+            return !str_contains($normalize($studentName), $normalize($search));
+        };
+
         return $form
             ->schema([
                 Forms\Components\Hidden::make('season_id')
@@ -87,6 +111,24 @@ class ExamResource extends Resource
 
                 Forms\Components\Section::make('رصد درجات المخدومين')
                     ->schema([
+                        Forms\Components\TextInput::make('student_search')
+                            ->label('بحث بالاسم')
+                            ->placeholder('اكتب اسم المخدوم للبحث...')
+                            ->live()
+                            ->dehydrated(false)
+                            ->columnSpanFull(),
+
+                        Forms\Components\Placeholder::make('search_style')
+                            ->hiddenLabel()
+                            ->content(new \Illuminate\Support\HtmlString('
+                                <style>
+                                    .fi-fo-repeater-item:has([data-search-hidden="true"]),
+                                    .filament-forms-repeater-item:has([data-search-hidden="true"]) {
+                                        display: none !important;
+                                    }
+                                </style>
+                            ')),
+
                         Forms\Components\Placeholder::make('headers')
                             ->label('')
                             ->content(new \Illuminate\Support\HtmlString('
@@ -99,24 +141,34 @@ class ExamResource extends Resource
                         Forms\Components\Repeater::make('scores')
                             ->relationship()
                             ->schema([
-                                Forms\Components\Hidden::make('student_season_enrollment_id'),
-                                Forms\Components\Placeholder::make('student_name')
-                                    ->hiddenLabel()
-                                    ->content(function ($record, $get) {
-                                        if ($record && $record->enrollment?->student) {
-                                            return $record->enrollment->student->full_name;
+                                Forms\Components\Grid::make(12)
+                                    ->schema([
+                                        Forms\Components\Hidden::make('student_season_enrollment_id'),
+                                        Forms\Components\Placeholder::make('student_name')
+                                            ->hiddenLabel()
+                                            ->content(function ($record, $get) {
+                                                if ($record && $record->enrollment?->student) {
+                                                    return $record->enrollment->student->full_name;
+                                                }
+                                                return $get('student_name') ?? '—';
+                                            })
+                                            ->columnSpan(8),
+                                        Forms\Components\TextInput::make('score')
+                                            ->hiddenLabel()
+                                            ->numeric()
+                                            ->required()
+                                            ->default(0)
+                                            ->columnSpan(4),
+                                    ])
+                                    ->extraAttributes(function ($get, $record) use ($shouldHide) {
+                                        if ($shouldHide($get, $record)) {
+                                            return [
+                                                'data-search-hidden' => 'true',
+                                            ];
                                         }
-                                        return $get('student_name') ?? '—';
-                                    })
-                                    ->columnSpan(8),
-                                Forms\Components\TextInput::make('score')
-                                    ->hiddenLabel()
-                                    ->numeric()
-                                    ->required()
-                                    ->default(0)
-                                    ->columnSpan(4),
+                                        return [];
+                                    }),
                             ])
-                            ->columns(12)
                             ->addable(false)
                             ->deletable(false)
                             ->reorderable(false)
@@ -155,7 +207,11 @@ class ExamResource extends Resource
                     ->sortable(),
             ])
             ->filters([
-                //
+                Tables\Filters\SelectFilter::make('class_id')
+                    ->label('الفصل')
+                    ->relationship('class', 'name')
+                    ->preload()
+                    ->visible(fn () => auth()->user()?->hasRole('super_admin') ?? false),
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),

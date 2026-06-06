@@ -89,12 +89,26 @@ class ExamScoreResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('enrollment.student.full_name')->label('المخدوم')->searchable(),
-                Tables\Columns\TextColumn::make('exam.title')->label('الامتحان'),
-                Tables\Columns\TextColumn::make('score')->label('الدرجة'),
+                Tables\Columns\TextColumn::make('exam.title')
+                    ->label('الامتحان')
+                    ->description(fn ($record) => $record->exam?->class?->name),
+                Tables\Columns\TextColumn::make('score')->label('الدرجة')->sortable(),
             ])
             ->defaultSort('created_at', 'desc')
             ->filters([
                 Tables\Filters\SelectFilter::make('exam')->relationship('exam', 'title')->label('الامتحان'),
+                Tables\Filters\SelectFilter::make('class_id')
+                    ->label('الفصل')
+                    ->options(\App\Models\KerazaClass::pluck('name', 'id'))
+                    ->query(function (\Illuminate\Database\Eloquent\Builder $query, array $data) {
+                        if (empty($data['value'])) {
+                            return;
+                        }
+                        $query->whereHas('exam', function ($q) use ($data) {
+                            $q->where('class_id', $data['value']);
+                        });
+                    })
+                    ->visible(fn () => auth()->user()?->hasRole('super_admin') ?? false),
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),

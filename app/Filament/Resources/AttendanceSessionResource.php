@@ -206,7 +206,11 @@ class AttendanceSessionResource extends Resource
             ])
             ->defaultSort('date', 'desc')
             ->filters([
-                //
+                Tables\Filters\SelectFilter::make('class_id')
+                    ->label('الفصل')
+                    ->relationship('class', 'name')
+                    ->preload()
+                    ->visible(fn () => auth()->user()?->hasRole('super_admin') ?? false),
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),

@@ -9,6 +9,13 @@ class MemorizationScore extends Model
 {
     protected $fillable = ['student_season_enrollment_id', 'memorization_item_id', 'score', 'accuracy', 'notes'];
 
+    protected static function booted()
+    {
+        static::saving(function ($memorizationScore) {
+            $memorizationScore->accuracy = $memorizationScore->score;
+        });
+    }
+
     public function enrollment(): BelongsTo
     {
         return $this->belongsTo(StudentSeasonEnrollment::class, 'student_season_enrollment_id');
