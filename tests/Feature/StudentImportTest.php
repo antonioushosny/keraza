@@ -693,7 +693,7 @@ class StudentImportTest extends TestCase
         \Livewire\Livewire::actingAs($user, 'admin')
             ->test(\App\Filament\Resources\AttendanceSessionResource\Pages\ListAttendanceSessions::class)
             ->callTableAction('import_attendance', data: [
-                'file' => $storagePath,
+                'file' => [$storagePath],
             ]);
 
         // Assert session created with proper date format
@@ -706,7 +706,7 @@ class StudentImportTest extends TestCase
         // Assert attendance recorded
         $session = \App\Models\AttendanceSession::where('date', '2026-05-30')->first();
         $this->assertNotNull($session);
-        $this->assertDatabaseHas('attendances', [
+        $this->assertDatabaseHas('attendance', [
             'attendance_session_id' => $session->id,
             'status' => 'present',
         ]);

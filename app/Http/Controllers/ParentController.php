@@ -64,9 +64,12 @@ class ParentController extends Controller
             }
         }
 
+        $settings = \App\Models\Setting::getSettings();
+
         return view('parent-dashboard', [
             'season' => $season,
             'childrenData' => $childrenData,
+            'settings' => $settings,
         ]);
     }
 

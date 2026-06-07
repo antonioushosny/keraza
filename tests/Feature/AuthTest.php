@@ -12,22 +12,30 @@ class AuthTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->seed(\Database\Seeders\RolesAndPermissionsSeeder::class);
+    }
+
     public function test_user_can_login_with_phone_number()
     {
         $user = User::create([
             'name' => 'Admin',
             'phone' => '01000000000',
             'password' => bcrypt('password'),
+            'type' => 'admin',
         ]);
+        $user->assignRole('super_admin');
 
         Livewire::test(Login::class)
             ->set('data.phone', '01000000000')
             ->set('data.password', 'password')
             ->call('authenticate')
             ->assertHasNoErrors()
-            ->assertRedirect('/admin');
+            ->assertRedirect('/');
 
-        $this->assertAuthenticatedAs($user);
+        $this->assertAuthenticatedAs($user, 'admin');
     }
 
     public function test_user_cannot_login_with_wrong_password()
@@ -36,7 +44,9 @@ class AuthTest extends TestCase
             'name' => 'Admin',
             'phone' => '01000000000',
             'password' => bcrypt('password'),
+            'type' => 'admin',
         ]);
+        $user->assignRole('super_admin');
 
         Livewire::test(Login::class)
             ->set('data.phone', '01000000000')

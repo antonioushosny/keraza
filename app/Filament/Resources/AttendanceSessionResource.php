@@ -244,6 +244,18 @@ class AttendanceSessionResource extends Resource
                             ->with('student')
                             ->get();
 
+                        $session = \App\Models\AttendanceSession::where('class_id', $classId)
+                            ->where('date', $date)
+                            ->where('season_id', $activeSeason->id)
+                            ->first();
+
+                        $existingAttendances = [];
+                        if ($session) {
+                            $existingAttendances = \App\Models\Attendance::where('attendance_session_id', $session->id)
+                                ->pluck('status', 'student_season_enrollment_id')
+                                ->toArray();
+                        }
+
                         $headers = [
                             'student_code' => 'كود المخدوم',
                             'student_name' => 'اسم المخدوم',
@@ -251,18 +263,19 @@ class AttendanceSessionResource extends Resource
                             'status' => 'الحالة (present, absent, excused)',
                         ];
 
-                        $callback = function () use ($enrollments, $headers, $date) {
+                        $callback = function () use ($enrollments, $headers, $date, $existingAttendances) {
                             $file = fopen('php://output', 'w');
                             fprintf($file, chr(0xEF).chr(0xBB).chr(0xBF));
                             
                             fputcsv($file, array_values($headers));
 
                             foreach ($enrollments as $enrollment) {
+                                $status = $existingAttendances[$enrollment->id] ?? 'absent';
                                 fputcsv($file, [
                                     $enrollment->student->code,
                                     $enrollment->student->full_name,
                                     $date,
-                                    'absent',
+                                    $status,
                                 ]);
                             }
                             fclose($file);
@@ -286,7 +299,9 @@ class AttendanceSessionResource extends Resource
                             ->acceptedFileTypes(['text/csv', 'application/vnd.ms-excel', 'text/plain']),
                     ])
                     ->action(function (array $data) {
-                        $filePath = storage_path('app/public/' . $data['file']);
+                        $fileState = $data['file'];
+                        $fileName = is_array($fileState) ? (\Illuminate\Support\Arr::first($fileState) ?? '') : $fileState;
+                        $filePath = storage_path('app/public/' . $fileName);
                         
                         if (!file_exists($filePath)) {
                             \Filament\Notifications\Notification::make()

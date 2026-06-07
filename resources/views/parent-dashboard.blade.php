@@ -135,11 +135,13 @@
 
                             @if($enrollment)
                                 {{-- Quick Stats --}}
-                                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+                                <div class="grid grid-cols-2 {{ $settings->show_attendance_percentage ? 'sm:grid-cols-4' : 'sm:grid-cols-3' }} gap-3 mb-6">
+                                    @if($settings->show_attendance_percentage)
                                     <div class="bg-gray-50 rounded-2xl p-3 text-center border border-gray-100">
                                         <div class="text-sm font-bold text-gray-500 mb-1">📅 الحضور</div>
                                         <div class="text-lg font-black text-gray-800">{{ round($rankInfo['data']['breakdown']['attendance'] ?? 0) }}%</div>
                                     </div>
+                                    @endif
                                     <div class="bg-gray-50 rounded-2xl p-3 text-center border border-gray-100">
                                         <div class="text-sm font-bold text-gray-500 mb-1">📝 الامتحانات</div>
                                         <div class="text-lg font-black text-gray-800">{{ round($rankInfo['data']['breakdown']['exams'] ?? 0) }}%</div>
@@ -360,7 +362,7 @@
 
                                          <div class="bg-blue-50 p-4 rounded-2xl">
                                              <h4 class="font-bold text-blue-800 mb-2">💡 نصيحة للتشجيع</h4>
-                                             <p class="text-sm text-blue-600">ابنك متفوق جداً في {{ $rankInfo['data']['breakdown']['exams'] > 90 ? 'الامتحانات' : 'الحضور' }}، شجعه على الاستمرار وتطوير مستواه في باقي المجالات!</p>
+                                             <p class="text-sm text-blue-600">ابنك متفوق جداً في {{ $rankInfo['data']['breakdown']['exams'] > 90 ? 'الامتحانات' : ($settings->show_attendance_percentage ? 'الحضور' : 'الامتحانات') }}، شجعه على الاستمرار وتطوير مستواه في باقي المجالات!</p>
                                          </div>
                                      </div>
                                  </div>

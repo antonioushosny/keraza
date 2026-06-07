@@ -59,7 +59,27 @@ class ParentResource extends Resource
                             ->multiple()
                             ->searchable()
                             ->preload()
-                            ->options(fn () => \App\Models\Student::pluck('full_name', 'id'))
+                            ->options(function ($record) {
+                                $user = auth()->user();
+                                $activeSeason = \App\Models\Season::active();
+                                $query = \App\Models\Student::query();
+                                
+                                if ($user && !$user->hasRole('super_admin')) {
+                                    $assignedClassIds = $user->assignedClasses->pluck('id');
+                                    $query->where(function ($q) use ($assignedClassIds, $activeSeason, $record) {
+                                        $q->whereHas('enrollments', function ($enrollmentQuery) use ($assignedClassIds, $activeSeason) {
+                                            $enrollmentQuery->whereIn('class_id', $assignedClassIds);
+                                            if ($activeSeason) {
+                                                $enrollmentQuery->where('season_id', $activeSeason->id);
+                                            }
+                                        });
+                                        if ($record) {
+                                            $q->orWhere('parent_id', $record->id);
+                                        }
+                                    });
+                                }
+                                return $query->pluck('full_name', 'id');
+                            })
                             ->afterStateHydrated(function ($component, $record) {
                                 if ($record) {
                                     $component->state($record->students()->pluck('id')->toArray());
@@ -114,8 +134,24 @@ class ParentResource extends Resource
 
     public static function getEloquentQuery(): Builder
     {
-        return parent::getEloquentQuery()
-            ->where('type', 'parent');
+        $query = parent::getEloquentQuery()->where('type', 'parent');
+        
+        $user = auth()->user();
+        if ($user && !$user->hasRole('super_admin')) {
+            $assignedClassIds = $user->assignedClasses->pluck('id');
+            $activeSeason = \App\Models\Season::active();
+
+            $query->whereHas('students', function ($studentQuery) use ($assignedClassIds, $activeSeason) {
+                $studentQuery->whereHas('enrollments', function ($enrollmentQuery) use ($assignedClassIds, $activeSeason) {
+                    $enrollmentQuery->whereIn('class_id', $assignedClassIds);
+                    if ($activeSeason) {
+                        $enrollmentQuery->where('season_id', $activeSeason->id);
+                    }
+                });
+            });
+        }
+        
+        return $query;
     }
 
     public static function getPages(): array

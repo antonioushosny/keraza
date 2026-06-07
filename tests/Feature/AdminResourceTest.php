@@ -14,7 +14,11 @@ class AdminResourceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        Role::create(['name' => 'Super Admin']);
+        Role::create(['name' => 'super_admin']);
+        \App\Models\Season::create([
+            'name' => 'Keraza 2026',
+            'is_active' => true,
+        ]);
     }
 
     public function test_admin_can_access_student_resource()
@@ -23,15 +27,16 @@ class AdminResourceTest extends TestCase
             'name' => 'Admin',
             'phone' => '01000000000',
             'password' => bcrypt('password'),
+            'type' => 'admin',
         ]);
-        $user->assignRole('Super Admin');
+        $user->assignRole('super_admin');
 
-        $this->actingAs($user);
+        $this->actingAs($user, 'admin');
 
         $response = $this->get('/admin/students');
 
         $response->assertStatus(200);
-        $response->assertSee('الطلاب');
+        $response->assertSee('المخدومين');
     }
 
     public function test_admin_can_access_season_resource()
@@ -40,10 +45,11 @@ class AdminResourceTest extends TestCase
             'name' => 'Admin',
             'phone' => '01000000000',
             'password' => bcrypt('password'),
+            'type' => 'admin',
         ]);
-        $user->assignRole('Super Admin');
+        $user->assignRole('super_admin');
 
-        $this->actingAs($user);
+        $this->actingAs($user, 'admin');
 
         $response = $this->get('/admin/seasons');
 

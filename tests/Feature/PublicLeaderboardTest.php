@@ -14,7 +14,7 @@ class PublicLeaderboardTest extends TestCase
     {
         Season::create(['name' => 'Keraza 2026', 'is_active' => true]);
 
-        $response = $this->get('/rankings');
+        $response = $this->get('/');
 
         $response->assertStatus(200);
         $response->assertSee('لوحة الشرف');

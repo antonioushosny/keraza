@@ -22,6 +22,16 @@ class LeaderboardController extends Controller
         $rankings = collect();
         if ($seasonId) {
             $rankings = $scoringService->getRankingsWithBadges($seasonId, $classId);
+
+            $settings = \App\Models\Setting::getSettings();
+
+            if (!$settings->show_zero_scores) {
+                $rankings = $rankings->filter(fn($r) => $r['score'] > 0);
+            }
+
+            if ($settings->honor_roll_limit_enabled && $settings->honor_roll_limit > 0) {
+                $rankings = $rankings->take($settings->honor_roll_limit);
+            }
         }
 
         $currentClass = $classId ? KerazaClass::find($classId) : null;
