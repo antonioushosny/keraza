@@ -128,10 +128,19 @@ class NewFeaturesTest extends TestCase
 
         // Under our settings:
         // - Student Zero is filtered out (score is 0).
-        // - Output is limited to 1 (because honor_roll_limit = 1).
+        // - Output is limited to 1 unique score level (20%).
+        // - Both Student High 1 and Student High 2 share the same score, so they are both returned!
         $rankings = $response->viewData('rankings');
-        $this->assertCount(1, $rankings);
+        $this->assertCount(2, $rankings);
+        
+        $this->assertEquals(1, $rankings[0]['rank_position']);
+        $this->assertEquals(1, $rankings[1]['rank_position']);
+        
+        $this->assertFalse($rankings[0]['is_repeated']);
+        $this->assertTrue($rankings[1]['is_repeated']);
+        
         $this->assertNotEquals('Student Zero', $rankings[0]['student_name']);
+        $this->assertNotEquals('Student Zero', $rankings[1]['student_name']);
     }
 
     /** @test */

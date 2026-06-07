@@ -36,7 +36,7 @@
     </script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js"></script>
     <style>
-        * { font-family: 'Cairo', sans-serif; }
+        * { font-family: 'Cairo', sans-serif; letter-spacing: normal !important; }
         [x-cloak] { display: none !important; }
 
         body {
@@ -240,21 +240,22 @@
                 <div class="space-y-3 relative">
                     @foreach($rankings as $index => $rank)
                         @php
-                            $position = $index + 1;
-                            $isTop3 = $position <= 3;
-                            $cardClass = match($position) {
+                            $rankPos = $rank['rank_position'] ?? ($index + 1);
+                            $isRepeated = $rank['is_repeated'] ?? false;
+                            $isTop3 = $rankPos <= 3;
+                            $cardClass = match($rankPos) {
                                 1 => 'top-1-card',
                                 2 => 'top-2-card',
                                 3 => 'top-3-card',
                                 default => 'normal-card',
                             };
-                            $avatarRing = match($position) {
+                            $avatarRing = match($rankPos) {
                                 1 => 'avatar-ring-1',
                                 2 => 'avatar-ring-2',
                                 3 => 'avatar-ring-3',
                                 default => '',
                             };
-                            $medal = match($position) {
+                            $medal = match($rankPos) {
                                 1 => '🥇',
                                 2 => '🥈',
                                 3 => '🥉',
@@ -269,11 +270,17 @@
                              style="animation-delay: {{ $index * 0.05 }}s">
 
                             {{-- Rank Number / Medal --}}
-                            <div class="flex-shrink-0 w-8 sm:w-10 text-center">
+                            <div class="flex-shrink-0 w-12 sm:w-16 text-center leading-none">
                                 @if($medal)
-                                    <span class="text-xl sm:text-2xl {{ $position === 1 ? 'float-animation' : '' }}">{{ $medal }}</span>
+                                    <span class="text-xl sm:text-2xl {{ $rankPos === 1 ? 'float-animation' : '' }}">{{ $medal }}</span>
+                                    @if($isRepeated)
+                                        <span class="block text-[10px] font-bold text-amber-300/80 mt-1">مكرر</span>
+                                    @endif
                                 @else
-                                    <span class="text-base sm:text-lg font-black text-white/40">#{{ $position }}</span>
+                                    <span class="text-base sm:text-lg font-black text-white/40">#{{ $rankPos }}</span>
+                                    @if($isRepeated)
+                                        <span class="block text-[10px] font-bold text-white/30 mt-1">مكرر</span>
+                                    @endif
                                 @endif
                             </div>
 
@@ -322,7 +329,7 @@
                             </div>
 
                             {{-- Stars for top 5 --}}
-                            @if($position <= 5)
+                            @if($rankPos <= 5)
                                 <div class="flex-shrink-0 text-lg sparkle" style="animation-delay: {{ $index * 0.3 }}s">
                                     ⭐
                                 </div>

@@ -30,8 +30,27 @@ class LeaderboardController extends Controller
             }
 
             if ($settings->honor_roll_limit_enabled && $settings->honor_roll_limit > 0) {
-                $rankings = $rankings->take($settings->honor_roll_limit);
+                $uniqueScores = $rankings->pluck('score')->unique()->take($settings->honor_roll_limit);
+                $rankings = $rankings->whereIn('score', $uniqueScores);
             }
+
+            // Compute dense ranks
+            $currentRank = 0;
+            $currentScore = null;
+            $rankings = $rankings->map(function ($rank) use (&$currentRank, &$currentScore) {
+                if ($currentScore === null || $rank['score'] != $currentScore) {
+                    $currentRank++;
+                    $currentScore = $rank['score'];
+                    $isRepeated = false;
+                } else {
+                    $isRepeated = true;
+                }
+
+                $rank['rank_position'] = $currentRank;
+                $rank['is_repeated'] = $isRepeated;
+
+                return $rank;
+            });
         }
 
         $currentClass = $classId ? KerazaClass::find($classId) : null;

@@ -42,6 +42,18 @@ class ParentController extends Controller
                     // Use scoring service to get rankings/scores for the child's class
                     $rankings = $scoringService->getRankingsWithBadges($season->id, $enrollment->class_id);
                     
+                    // Compute dense ranks
+                    $currentRank = 0;
+                    $currentScore = null;
+                    $rankings = $rankings->map(function ($r) use (&$currentRank, &$currentScore) {
+                        if ($currentScore === null || $r['score'] != $currentScore) {
+                            $currentRank++;
+                            $currentScore = $r['score'];
+                        }
+                        $r['rank_position'] = $currentRank;
+                        return $r;
+                    });
+                    
                     // Find the child in the rankings
                     $childRanking = $rankings->firstWhere('student_id', $child->id);
                     
@@ -49,9 +61,7 @@ class ParentController extends Controller
                         'student' => $child,
                         'enrollment' => $enrollment,
                         'ranking_info' => $childRanking,
-                        'rank_position' => $rankings->search(fn($r) => $r['student_id'] === $child->id) !== false 
-                            ? $rankings->search(fn($r) => $r['student_id'] === $child->id) + 1 
-                            : null,
+                        'rank_position' => $childRanking ? $childRanking['rank_position'] : null,
                     ];
                 } else {
                     $childrenData[] = [
