@@ -22,11 +22,15 @@ class AttendanceResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
 
-    protected static bool $shouldRegisterNavigation = false;
+    protected static bool $shouldRegisterNavigation = true;
+
+    protected static ?string $navigationGroup = 'الحضور والأنشطة';
+
+    protected static ?int $navigationSort = 2;
 
     protected static ?string $modelLabel = 'حضور فردي';
 
-    protected static ?string $pluralModelLabel = 'الحضور';
+    protected static ?string $pluralModelLabel = 'الحضور الفردي';
 
     public static function canViewAny(): bool
     {
@@ -37,51 +41,58 @@ class AttendanceResource extends Resource
     {
         return $form
             ->schema([
+                Forms\Components\Select::make('class_id')
+                    ->label('الفصل')
+                    ->options(function () {
+                        $user = auth()->user();
+                        if ($user->hasRole('super_admin')) {
+                            return \App\Models\KerazaClass::pluck('name', 'id')->toArray();
+                        }
+                        return $user->assignedClasses->pluck('name', 'id')->toArray();
+                    })
+                    ->live()
+                    ->required()
+                    ->dehydrated(false)
+                    ->searchable()
+                    ->preload(),
+
                 Forms\Components\Select::make('student_season_enrollment_id')
                     ->label('المخدوم')
-                    ->searchable()
-                    ->getSearchResultsUsing(function (string $search): array {
-                        $query = StudentSeasonEnrollment::query()
-                            ->whereHas('student', function ($sq) use ($search) {
-                                $sq->where('full_name', 'like', "%{$search}%");
-                            });
-
-                        if (!auth()->user()->hasRole('super_admin')) {
-                            $query->whereIn('class_id', auth()->user()->assignedClasses->pluck('id'));
+                    ->options(function (Forms\Get $get) {
+                        $classId = $get('class_id');
+                        if (!$classId) {
+                            return [];
                         }
-
-                        $activeSeason = Season::active();
-                        if ($activeSeason) {
-                            $query->where('season_id', $activeSeason->id);
+                        $activeSeason = \App\Models\Season::active();
+                        if (!$activeSeason) {
+                            return [];
                         }
-
-                        return $query->limit(50)
+                        return \App\Models\StudentSeasonEnrollment::where('class_id', $classId)
+                            ->where('season_id', $activeSeason->id)
+                            ->with('student')
                             ->get()
-                            ->mapWithKeys(fn ($record) => [
-                                $record->id => $record->student->full_name . ($record->class ? ' - ' . $record->class->name : '')
-                            ])
+                            ->mapWithKeys(fn ($item) => [$item->id => $item->student->full_name])
                             ->toArray();
                     })
-                    ->getOptionLabelUsing(function ($value): ?string {
-                        $record = StudentSeasonEnrollment::with(['student', 'class'])->find($value);
-                        if (!$record) {
-                            return null;
-                        }
-                        return $record->student->full_name . ($record->class ? ' - ' . $record->class->name : '');
-                    })
-                    ->required(),
+                    ->required()
+                    ->searchable()
+                    ->preload(),
+
                 Forms\Components\DatePicker::make('date')
                     ->label('التاريخ')
                     ->required()
                     ->default(now()),
+
                 Forms\Components\Select::make('status')
                     ->label('الحالة')
                     ->options([
                         'present' => 'حاضر',
                         'absent' => 'غائب',
+                        'excused' => 'معتذر',
                     ])
-                    ->default('absent')
+                    ->default('present')
                     ->required(),
+
                 Forms\Components\Textarea::make('notes')
                     ->label('ملاحظات')
                     ->maxLength(65535)
@@ -97,7 +108,10 @@ class AttendanceResource extends Resource
                     ->label('المخدوم')
                     ->searchable()
                     ->sortable(),
-                Tables\Columns\TextColumn::make('date')
+                Tables\Columns\TextColumn::make('enrollment.class.name')
+                    ->label('الفصل')
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('session.date')
                     ->label('التاريخ')
                     ->date()
                     ->sortable(),
@@ -107,18 +121,29 @@ class AttendanceResource extends Resource
                     ->color(fn (string $state): string => match ($state) {
                         'present' => 'success',
                         'absent' => 'danger',
-                        'late' => 'warning',
+                        'excused' => 'warning',
                         default => 'gray',
                     })
                     ->formatStateUsing(fn (string $state): string => match ($state) {
                         'present' => 'حاضر',
                         'absent' => 'غائب',
+                        'excused' => 'معتذر',
                         default => $state,
                     }),
             ])
             ->defaultSort('created_at', 'desc')
             ->filters([
-                //
+                Tables\Filters\SelectFilter::make('class_id')
+                    ->label('الفصل')
+                    ->options(\App\Models\KerazaClass::pluck('name', 'id'))
+                    ->query(function (\Illuminate\Database\Eloquent\Builder $query, array $data) {
+                        if (empty($data['value'])) {
+                            return;
+                        }
+                        $query->whereHas('enrollment', function ($q) use ($data) {
+                            $q->where('class_id', $data['value']);
+                        });
+                    }),
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
