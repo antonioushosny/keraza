@@ -10,6 +10,7 @@ use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Filament\Tables\Filters\Filter;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 
@@ -215,6 +216,18 @@ class AttendanceSessionResource extends Resource
                     ->relationship('class', 'name')
                     ->preload()
                     ->visible(fn () => auth()->user()?->hasRole('super_admin') ?? false),
+                Filter::make('date')
+                    ->label('التاريخ')
+                    ->form([
+                        Forms\Components\DatePicker::make('date')
+                            ->label('التاريخ'),
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        return $query->when(
+                            $data['date'],
+                            fn (Builder $query, $date) => $query->whereDate('date', $date)
+                        );
+                    }),
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),

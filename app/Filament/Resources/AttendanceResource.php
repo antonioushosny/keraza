@@ -15,7 +15,7 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 use App\Models\StudentSeasonEnrollment;
 use App\Models\Season;
-
+use Filament\Tables\Filters\Filter;
 class AttendanceResource extends Resource
 {
     protected static ?string $model = Attendance::class;
@@ -143,6 +143,18 @@ class AttendanceResource extends Resource
                         $query->whereHas('enrollment', function ($q) use ($data) {
                             $q->where('class_id', $data['value']);
                         });
+                    }),
+                Filter::make('date')
+                    ->label('التاريخ')
+                    ->form([
+                        Forms\Components\DatePicker::make('date')
+                            ->label('تاريخ الحضور'),
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        return $query->when(
+                            $data['date'],
+                            fn (Builder $query, $date) => $query->whereHas('session', fn($q) => $q->whereDate('date', $date))
+                        );
                     }),
             ])
             ->actions([
