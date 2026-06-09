@@ -25,7 +25,7 @@ class ActivityTypeResource extends Resource
 
     protected static ?string $navigationGroup = 'الحضور والأنشطة';
 
-    protected static ?int $navigationSort = 3;
+    protected static ?int $navigationSort = 4;
 
     public static function canViewAny(): bool
     {
