@@ -60,4 +60,44 @@ class ScoringServiceTest extends TestCase
         // Expected: (100 * 0.2) + (80 * 0.3) + 0 + 0 + 0 = 20 + 24 = 44
         $this->assertEquals(44, $scoreData['final_score']);
     }
+
+    public function test_it_calculates_attendance_score_with_excused_status_correctly()
+    {
+        $service = new ScoringService();
+
+        $season = Season::create(['name' => 'Test Season 2', 'is_active' => true]);
+        $class = KerazaClass::create(['season_id' => $season->id, 'name' => 'Test Class 2']);
+        $student = Student::create(['full_name' => 'Test Student 2', 'gender' => 'male']);
+        
+        $enrollment = StudentSeasonEnrollment::create([
+            'student_id' => $student->id,
+            'season_id' => $season->id,
+            'class_id' => $class->id,
+        ]);
+
+        ScoringRule::create([
+            'season_id' => $season->id,
+            'weight_attendance' => 20,
+            'weight_exams' => 30,
+            'weight_memorization' => 20,
+            'weight_activities' => 20,
+            'weight_behavior' => 10,
+        ]);
+
+        // Mock 2 present attendances and 2 excused attendances (total 4 sessions)
+        // present = 2 * 1 = 2
+        // excused = 2 * 0.5 = 1
+        // total points = 3. Out of 4 total sessions, attendance score should be 3/4 * 100 = 75%.
+        $enrollment->attendance()->create(['date' => now()->subDays(3), 'status' => 'present']);
+        $enrollment->attendance()->create(['date' => now()->subDays(2), 'status' => 'present']);
+        $enrollment->attendance()->create(['date' => now()->subDays(1), 'status' => 'excused']);
+        $enrollment->attendance()->create(['date' => now(), 'status' => 'excused']);
+
+        $scoreData = $service->calculateScore($enrollment);
+
+        // Expected attendance score: 75
+        $this->assertEquals(75, $scoreData['breakdown']['attendance']);
+        // Final score: 75 * 0.2 = 15
+        $this->assertEquals(15, $scoreData['final_score']);
+    }
 }

@@ -35,10 +35,15 @@ class ScoringService
         // Check if relations are already loaded to avoid N+1 queries
         if ($enrollment->relationLoaded('attendance')) {
             $totalSessions = $enrollment->attendance->count();
-            $attendedSessions = $enrollment->attendance->whereIn('status', ['present', 'excused'])->count();
+            $presentCount = $enrollment->attendance->where('status', 'present')->count();
+            $excusedCount = $enrollment->attendance->where('status', 'excused')->count();
+            $attendedSessions = $presentCount + ($excusedCount * 0.5);
         } else {
-            $totalSessions = $enrollment->attendance()->count();
-            $attendedSessions = $enrollment->attendance()->whereIn('status', ['present', 'excused'])->count();
+            $attendances = $enrollment->attendance()->select('status')->get();
+            $totalSessions = $attendances->count();
+            $presentCount = $attendances->where('status', 'present')->count();
+            $excusedCount = $attendances->where('status', 'excused')->count();
+            $attendedSessions = $presentCount + ($excusedCount * 0.5);
         }
         
         $attendanceScore = $totalSessions > 0 ? ($attendedSessions / $totalSessions) * 100 : 100;
