@@ -16,6 +16,8 @@ class SeasonResource extends Resource
     protected static ?string $navigationIcon = 'heroicon-o-calendar';
     protected static ?string $modelLabel = 'موسم';
     protected static ?string $pluralModelLabel = 'المواسم';
+    protected static ?string $navigationGroup = 'إعدادات النظام';
+    protected static ?int $navigationSort = 2;
 
     public static function canViewAny(): bool
     {

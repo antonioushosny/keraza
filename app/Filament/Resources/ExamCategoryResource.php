@@ -23,6 +23,10 @@ class ExamCategoryResource extends Resource
 
     protected static ?string $pluralModelLabel = 'تصنيفات الامتحانات';
 
+    protected static ?string $navigationGroup = 'الامتحانات والتسميع';
+
+    protected static ?int $navigationSort = 3;
+
     public static function canViewAny(): bool
     {
         return auth()->user()?->hasRole('super_admin') ?? false;

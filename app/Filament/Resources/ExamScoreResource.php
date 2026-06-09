@@ -23,6 +23,10 @@ class ExamScoreResource extends Resource
 
     protected static ?string $pluralModelLabel = 'درجات الامتحانات';
 
+    protected static ?string $navigationGroup = 'الامتحانات والتسميع';
+
+    protected static ?int $navigationSort = 2;
+
     public static function canViewAny(): bool
     {
         return auth()->user()?->hasAnyRole(['super_admin', 'class_admin', 'class_servant']) ?? false;

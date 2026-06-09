@@ -18,6 +18,8 @@ class ActivityScoreResource extends Resource
     protected static ?string $navigationIcon = 'heroicon-o-star';
     protected static ?string $modelLabel = 'تقييم نشاط';
     protected static ?string $pluralModelLabel = 'تقييمات الأنشطة';
+    protected static ?string $navigationGroup = 'الحضور والأنشطة';
+    protected static ?int $navigationSort = 5;
 
     public static function canViewAny(): bool
     {

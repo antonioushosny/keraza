@@ -23,6 +23,10 @@ class ActivityResource extends Resource
 
     protected static ?string $pluralModelLabel = 'الأنشطة';
 
+    protected static ?string $navigationGroup = 'الحضور والأنشطة';
+
+    protected static ?int $navigationSort = 2;
+
     public static function canViewAny(): bool
     {
         return auth()->user()?->hasAnyRole(['super_admin', 'activity_admin']) ?? false;

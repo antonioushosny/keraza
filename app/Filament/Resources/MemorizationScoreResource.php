@@ -23,6 +23,10 @@ class MemorizationScoreResource extends Resource
 
     protected static ?string $pluralModelLabel = 'درجات التسميع';
 
+    protected static ?string $navigationGroup = 'الامتحانات والتسميع';
+
+    protected static ?int $navigationSort = 5;
+
     public static function canViewAny(): bool
     {
         return auth()->user()?->hasAnyRole(['super_admin', 'class_admin', 'class_servant']) ?? false;

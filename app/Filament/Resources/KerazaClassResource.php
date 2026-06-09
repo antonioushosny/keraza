@@ -23,6 +23,10 @@ class KerazaClassResource extends Resource
 
     protected static ?string $pluralModelLabel = 'الفصول';
 
+    protected static ?string $navigationGroup = 'إعدادات النظام';
+
+    protected static ?int $navigationSort = 3;
+
     public static function canViewAny(): bool
     {
         return auth()->user()?->hasRole('super_admin') ?? false;

@@ -23,6 +23,10 @@ class AttendanceSessionResource extends Resource
 
     protected static ?string $pluralModelLabel = 'أيام الحضور';
 
+    protected static ?string $navigationGroup = 'الحضور والأنشطة';
+
+    protected static ?int $navigationSort = 1;
+
     public static function canViewAny(): bool
     {
         return auth()->user()?->hasAnyRole(['super_admin', 'class_admin', 'class_servant']) ?? false;

@@ -21,6 +21,10 @@ class ManageSettings extends Page
 
     protected static string $view = 'filament.pages.manage-settings';
 
+    protected static ?string $navigationGroup = 'إعدادات النظام';
+
+    protected static ?int $navigationSort = 1;
+
     public ?array $data = [];
 
     public static function canAccess(): bool

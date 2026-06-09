@@ -26,6 +26,10 @@ class BehaviorLogResource extends Resource
 
     protected static ?string $pluralModelLabel = 'سجلات السلوك';
 
+    protected static ?string $navigationGroup = 'إدارة المخدومين';
+
+    protected static ?int $navigationSort = 4;
+
     public static function canViewAny(): bool
     {
         return auth()->user()?->hasAnyRole(['super_admin', 'class_admin', 'class_servant']) ?? false;

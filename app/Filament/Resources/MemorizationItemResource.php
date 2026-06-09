@@ -16,6 +16,8 @@ class MemorizationItemResource extends Resource
     protected static ?string $navigationIcon = 'heroicon-o-book-open';
     protected static ?string $modelLabel = 'بند تسميع';
     protected static ?string $pluralModelLabel = 'بنود التسميع';
+    protected static ?string $navigationGroup = 'الامتحانات والتسميع';
+    protected static ?int $navigationSort = 4;
 
     public static function canViewAny(): bool
     {

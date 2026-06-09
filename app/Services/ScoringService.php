@@ -87,7 +87,21 @@ class ScoringService
                 'memorization' => round($memorizationScore, 2),
                 'activities' => round($activityScore, 2),
                 'behavior' => $behaviorPoints,
-            ]
+            ],
+            'weights' => [
+                'attendance' => $rule->weight_attendance,
+                'exams' => $rule->weight_exams,
+                'memorization' => $rule->weight_memorization,
+                'activities' => $rule->weight_activities,
+                'behavior' => $rule->weight_behavior,
+            ],
+            'weighted_breakdown' => [
+                'attendance' => round($attendanceScore * ($rule->weight_attendance / 100), 2),
+                'exams' => round($examScore * ($rule->weight_exams / 100), 2),
+                'memorization' => round($memorizationScore * ($rule->weight_memorization / 100), 2),
+                'activities' => round($activityScore * ($rule->weight_activities / 100), 2),
+                'behavior' => round($behaviorPoints * ($rule->weight_behavior / 100), 2),
+            ],
         ];
     }
 
@@ -137,7 +151,7 @@ class ScoringService
                 'badges' => $enrollment->badges->map(fn($sb) => [
                     'title' => $sb->badge->title,
                     'icon' => $sb->badge->icon,
-                ]),
+                ])->toArray(),
                 'data' => $scoreData,
             ];
         })->sortByDesc('score')->values();

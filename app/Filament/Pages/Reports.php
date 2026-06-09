@@ -15,6 +15,8 @@ class Reports extends Page
     protected static ?string $title = 'التقارير والإحصائيات';
     protected static ?string $navigationLabel = 'التقارير';
     protected static string $view = 'filament.pages.reports';
+    protected static ?string $navigationGroup = 'التقارير ولوحات الشرف';
+    protected static ?int $navigationSort = 1;
 
     public static function canAccess(): bool
     {

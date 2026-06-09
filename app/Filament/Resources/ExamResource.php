@@ -23,6 +23,10 @@ class ExamResource extends Resource
 
     protected static ?string $pluralModelLabel = 'الامتحانات';
 
+    protected static ?string $navigationGroup = 'الامتحانات والتسميع';
+
+    protected static ?int $navigationSort = 1;
+
     public static function canViewAny(): bool
     {
         return auth()->user()?->hasAnyRole(['super_admin', 'class_admin', 'class_servant']) ?? false;

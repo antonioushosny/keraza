@@ -16,6 +16,8 @@ class BadgeResource extends Resource
     protected static ?string $navigationIcon = 'heroicon-o-trophy';
     protected static ?string $modelLabel = 'وسام';
     protected static ?string $pluralModelLabel = 'الأوسمة والجوائز';
+    protected static ?string $navigationGroup = 'إعدادات النظام';
+    protected static ?int $navigationSort = 5;
 
     public static function canViewAny(): bool
     {

@@ -16,6 +16,8 @@ class StudentResource extends Resource
     protected static ?string $navigationIcon = 'heroicon-o-user-group';
     protected static ?string $modelLabel = 'مخدوم';
     protected static ?string $pluralModelLabel = 'المخدومين';
+    protected static ?string $navigationGroup = 'إدارة المخدومين';
+    protected static ?int $navigationSort = 1;
 
     public static function canViewAny(): bool
     {
@@ -157,6 +159,11 @@ class StudentResource extends Resource
                     ->visible(fn () => auth()->user()->hasRole('super_admin')),
             ])
             ->actions([
+                Tables\Actions\Action::make('view_report')
+                    ->label('عرض التقرير')
+                    ->icon('heroicon-o-eye')
+                    ->color('info')
+                    ->url(fn ($record) => static::getUrl('view', ['record' => $record])),
                 Tables\Actions\EditAction::make(),
             ])
             ->headerActions([
@@ -648,6 +655,7 @@ class StudentResource extends Resource
         return [
             'index' => Pages\ListStudents::route('/'),
             'create' => Pages\CreateStudent::route('/create'),
+            'view' => Pages\ViewStudent::route('/{record}'),
             'edit' => Pages\EditStudent::route('/{record}/edit'),
         ];
     }

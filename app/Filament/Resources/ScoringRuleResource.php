@@ -23,6 +23,10 @@ class ScoringRuleResource extends Resource
 
     protected static ?string $pluralModelLabel = 'قواعد توزيع الدرجات';
 
+    protected static ?string $navigationGroup = 'إعدادات النظام';
+
+    protected static ?int $navigationSort = 4;
+
     public static function canViewAny(): bool
     {
         return auth()->user()?->hasRole('super_admin') ?? false;
