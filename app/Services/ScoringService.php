@@ -43,15 +43,35 @@ class ScoringService
         
         $attendanceScore = $totalSessions > 0 ? ($attendedSessions / $totalSessions) * 100 : 100;
 
-        $examScore = $enrollment->relationLoaded('examScores')
-            ? $enrollment->examScores->avg('score')
-            : $enrollment->examScores()->avg('score');
-        $examScore = $examScore ?? 0;
+        if ($enrollment->relationLoaded('examScores')) {
+            $examScores = $enrollment->examScores;
+        } else {
+            $examScores = $enrollment->examScores()->with('exam')->get();
+        }
 
-        $memorizationScore = $enrollment->relationLoaded('memorizationScores')
-            ? $enrollment->memorizationScores->avg('score')
-            : $enrollment->memorizationScores()->avg('score');
-        $memorizationScore = $memorizationScore ?? 0;
+        if ($examScores->isNotEmpty()) {
+            $examScore = $examScores->map(function ($es) {
+                $total = $es->exam?->total_score ?: 100;
+                return $total > 0 ? ($es->score / $total) * 100 : 0;
+            })->average();
+        } else {
+            $examScore = 0;
+        }
+
+        if ($enrollment->relationLoaded('memorizationScores')) {
+            $memorizationScores = $enrollment->memorizationScores;
+        } else {
+            $memorizationScores = $enrollment->memorizationScores()->with('memorizationItem')->get();
+        }
+
+        if ($memorizationScores->isNotEmpty()) {
+            $memorizationScore = $memorizationScores->map(function ($ms) {
+                $max = $ms->memorizationItem?->max_points ?: 100;
+                return $max > 0 ? ($ms->score / $max) * 100 : 0;
+            })->average();
+        } else {
+            $memorizationScore = 0;
+        }
         
         $activityScore = 0;
         if ($enrollment->relationLoaded('activityEnrollments')) {
@@ -109,7 +129,7 @@ class ScoringService
     {
         $enrollments = StudentSeasonEnrollment::where('season_id', $seasonId)
             ->when($classId, fn($q) => $q->where('class_id', $classId))
-            ->with(['attendance', 'examScores', 'memorizationScores', 'activityEnrollments.scores', 'behaviorLogs', 'student'])
+            ->with(['attendance', 'examScores.exam', 'memorizationScores.memorizationItem', 'activityEnrollments.scores', 'behaviorLogs', 'student'])
             ->get();
 
         return $enrollments->map(function ($enrollment) {
@@ -132,8 +152,8 @@ class ScoringService
                 'badges.badge', 
                 'class',
                 'attendance', 
-                'examScores', 
-                'memorizationScores', 
+                'examScores.exam', 
+                'memorizationScores.memorizationItem',  
                 'activityEnrollments.scores', 
                 'behaviorLogs'
             ])

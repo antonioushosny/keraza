@@ -36,7 +36,7 @@ class Reports extends Page
 
         // 1. Core Stats
         $enrollments = StudentSeasonEnrollment::where('season_id', $activeSeason->id)
-            ->with(['attendance', 'examScores', 'memorizationScores', 'activityEnrollments.scores', 'behaviorLogs', 'student'])
+            ->with(['attendance', 'examScores.exam', 'memorizationScores.memorizationItem', 'activityEnrollments.scores', 'behaviorLogs', 'student'])
             ->get();
 
         $totalStudents = $enrollments->count();
