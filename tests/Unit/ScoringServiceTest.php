@@ -100,4 +100,45 @@ class ScoringServiceTest extends TestCase
         // Final score: 75 * 0.2 = 15
         $this->assertEquals(15, $scoreData['final_score']);
     }
+
+    public function test_it_caps_behavior_points_between_0_and_100()
+    {
+        $service = new ScoringService();
+
+        $season = Season::create(['name' => 'Test Season 3', 'is_active' => true]);
+        $class = KerazaClass::create(['season_id' => $season->id, 'name' => 'Test Class 3']);
+        $student = Student::create(['full_name' => 'Test Student 3', 'gender' => 'male']);
+        
+        $enrollment = StudentSeasonEnrollment::create([
+            'student_id' => $student->id,
+            'season_id' => $season->id,
+            'class_id' => $class->id,
+        ]);
+
+        ScoringRule::create([
+            'season_id' => $season->id,
+            'weight_attendance' => 20,
+            'weight_exams' => 30,
+            'weight_memorization' => 20,
+            'weight_activities' => 20,
+            'weight_behavior' => 10,
+        ]);
+
+        // Case 1: Behavior points exceeds 100 (e.g. 150 points)
+        $enrollment->behaviorLogs()->create(['points' => 150, 'type' => 'positive', 'reason' => 'Excellent']);
+        $scoreData = $service->calculateScore($enrollment);
+        // Should cap behaviorPoints at 100, so weighted behavior score is 100 * 0.10 = 10
+        // Final score: 20 (default attendance 100%) + 10 (behavior) = 30
+        $this->assertEquals(100, $scoreData['breakdown']['behavior']);
+        $this->assertEquals(30, $scoreData['final_score']);
+
+        // Case 2: Behavior points is negative (e.g. -50 points)
+        $enrollment->behaviorLogs()->delete();
+        $enrollment->behaviorLogs()->create(['points' => -50, 'type' => 'negative', 'reason' => 'Bad']);
+        $scoreData = $service->calculateScore($enrollment);
+        // Should floor behaviorPoints at 0, so weighted behavior score is 0
+        // Final score: 20 (default attendance 100%) + 0 (behavior) = 20
+        $this->assertEquals(0, $scoreData['breakdown']['behavior']);
+        $this->assertEquals(20, $scoreData['final_score']);
+    }
 }

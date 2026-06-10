@@ -95,6 +95,9 @@ class ScoringService
             ? $enrollment->behaviorLogs->sum('points')
             : $enrollment->behaviorLogs()->sum('points');
 
+        // Cap behavior points between 0 and 100 so it does not exceed its weight (100% of the weight)
+        $behaviorPoints = max(0, min(100, $behaviorPoints));
+
         // Weighted calculation
         $finalScore = (
             ($attendanceScore * ($rule->weight_attendance / 100)) +
