@@ -154,6 +154,9 @@ class BehaviorLogResource extends Resource
                     ->label('المخدوم')
                     ->searchable()
                     ->sortable(),
+                Tables\Columns\TextColumn::make('enrollment.class.name')
+                    ->label('الفصل')
+                    ->sortable(),
                 Tables\Columns\TextColumn::make('type')
                     ->label('النوع')
                     ->badge()
@@ -179,7 +182,28 @@ class BehaviorLogResource extends Resource
             ])
             ->defaultSort('created_at', 'desc')
             ->filters([
-                //
+                Tables\Filters\SelectFilter::make('class')
+                    ->label('الفصل')
+                    ->options(function () {
+                        $query = \App\Models\KerazaClass::query();
+                        if (!auth()->user()->hasRole('super_admin')) {
+                            $query->whereIn('id', auth()->user()->assignedClasses->pluck('id'));
+                        }
+                        return $query->pluck('name', 'id')->toArray();
+                    })
+                    ->query(function (Builder $query, array $data) {
+                        if (!empty($data['value'])) {
+                            $query->whereHas('enrollment', function ($q) use ($data) {
+                                $q->where('class_id', $data['value']);
+                            });
+                        }
+                    }),
+                Tables\Filters\SelectFilter::make('type')
+                    ->label('النوع')
+                    ->options([
+                        'positive' => 'إيجابي',
+                        'negative' => 'سلبي',
+                    ]),
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
