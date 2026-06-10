@@ -566,38 +566,62 @@
                                      </div>
 
                                      {{-- Memorization Tab --}}
-                                     <div x-show="activeTab === 'memorization'" class="space-y-4">
+                                     <div x-show="activeTab === 'memorization'" class="space-y-4" style="width:100%; box-sizing:border-box;">
                                          <h4 class="font-bold text-gray-800 text-sm flex items-center gap-1.5">
                                              <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
-                                             سجل المحفوظات والتسميع:
+                                             سجل المحفوظات والتسميع التفصيلي:
                                          </h4>
                                          @if($enrollment->memorizationScores->count() > 0)
-                                             <div class="grid gap-2.5">
+                                             <div class="grid gap-4 w-full">
                                                  @foreach($enrollment->memorizationScores as $memo)
                                                      @php
-                                                         $isDone = $memo->score >= 100;
-                                                         $memoBg = $isDone ? 'bg-emerald-50/30 border-r-emerald-500' : 'bg-gray-50/40 border-r-gray-300';
-                                                         $badgeClass = $isDone ? 'bg-emerald-100 text-emerald-800 border-emerald-200/50' : 'bg-gray-100 text-gray-500 border-gray-200/50';
+                                                         $maxPoints = $memo->memorizationItem?->max_points ?: 100;
+                                                         $mPercent = $maxPoints > 0 ? ($memo->score / $maxPoints) * 100 : 0;
+                                                         
+                                                         $cardBorderClass = $mPercent >= 100 
+                                                             ? 'border-r-emerald-500 bg-emerald-50/10' 
+                                                             : ($mPercent > 0 ? 'border-r-amber-500 bg-amber-50/10' : 'border-r-rose-500 bg-rose-50/10');
+                                                             
+                                                         $barGradient = $mPercent >= 100
+                                                             ? 'from-emerald-400 to-teal-500'
+                                                             : ($mPercent > 0 ? 'from-amber-400 to-orange-500' : 'from-rose-400 to-red-500');
+                                                             
+                                                         $textColor = $mPercent >= 100 ? 'text-emerald-700' : ($mPercent > 0 ? 'text-amber-700' : 'text-rose-700');
                                                      @endphp
-                                                     <div class="flex justify-between items-center bg-white border border-gray-100 p-3.5 rounded-2xl border-r-4 {{ $memoBg }} shadow-[0_2px_8px_rgba(0,0,0,0.01)]">
-                                                         <div class="flex items-start gap-2.5">
-                                                             <div class="bg-gray-50 p-2 rounded-xl text-gray-400">
-                                                                 <svg class="w-4.5 h-4.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                                                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"></path>
-                                                                 </svg>
+                                                     <div class="bg-white border border-gray-100 p-4 rounded-2xl border-r-4 {{ $cardBorderClass }} shadow-[0_2px_8px_rgba(0,0,0,0.01)] space-y-3 w-full box-sizing:border-box;">
+                                                         <div class="flex justify-between items-start">
+                                                             <div class="flex items-start gap-2.5">
+                                                                 <div class="bg-gray-50 p-2 rounded-xl text-gray-400">
+                                                                     <svg class="w-4.5 h-4.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                                                         <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"></path>
+                                                                     </svg>
+                                                                 </div>
+                                                                 <div>
+                                                                     <div class="text-sm font-extrabold text-gray-800">{{ $memo->memorizationItem?->title }}</div>
+                                                                 </div>
                                                              </div>
-                                                             <div>
-                                                                 <div class="text-sm font-extrabold text-gray-800">{{ $memo->memorizationItem?->title }}</div>
-                                                                 @if($memo->notes)
-                                                                     <div class="text-xs text-amber-700 font-bold mt-1 bg-amber-50/80 px-2 py-0.5 rounded-lg border border-amber-100/50 inline-block">📌 ملاحظة: {{ $memo->notes }}</div>
-                                                                 @endif
+                                                             <div class="text-right">
+                                                                 <div class="text-sm font-black {{ $textColor }}">
+                                                                     {{ $memo->score }} / {{ $maxPoints }}
+                                                                 </div>
+                                                                 <div class="text-[10px] text-gray-400 font-bold">الدرجة</div>
                                                              </div>
                                                          </div>
-                                                         <div>
-                                                             <span class="inline-flex items-center text-xs font-black px-3 py-1 rounded-xl border {{ $badgeClass }}">
-                                                                 {{ $isDone ? '✨ تم الحفظ' : 'لم يتم الحفظ' }}
-                                                             </span>
+                                                         
+                                                         <div class="space-y-1">
+                                                             <div class="w-full bg-gray-100 h-2.5 rounded-full overflow-hidden">
+                                                                 <div class="bg-gradient-to-r {{ $barGradient }} h-full rounded-full transition-all duration-500" style="width: {{ $mPercent }}%"></div>
+                                                             </div>
+                                                             <div class="flex justify-between text-[10px] font-bold text-gray-400">
+                                                                 <span>٠%</span>
+                                                                 <span>{{ round($mPercent) }}%</span>
+                                                                 <span>١٠٠%</span>
+                                                             </div>
                                                          </div>
+                                                         
+                                                         @if($memo->notes)
+                                                             <div class="text-xs text-amber-700 font-bold bg-amber-50/80 px-2.5 py-1.5 rounded-xl border border-amber-100/50 inline-block font-bold">📌 ملاحظة: {{ $memo->notes }}</div>
+                                                         @endif
                                                      </div>
                                                  @endforeach
                                              </div>
