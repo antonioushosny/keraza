@@ -68,16 +68,19 @@ class ClassRanking extends Page
         $scoringService = app(ScoringService::class);
         $rankingsCollection = $scoringService->getRankingsWithBadges($activeSeason->id, $this->selectedClassId);
 
-        // Assign rank positions with ties
+        // Assign rank positions with ties (dense ranking)
         $rankings = [];
-        $prevScore = null;
-        $prevRank = 0;
+        $currentRank = 0;
+        $currentScore = null;
 
-        foreach ($rankingsCollection as $index => $r) {
-            $currentRank = ($prevScore !== null && $r['score'] == $prevScore) ? $prevRank : $index + 1;
-            $isRepeated = ($prevScore !== null && $r['score'] == $prevScore);
-            $prevScore = $r['score'];
-            $prevRank = $currentRank;
+        foreach ($rankingsCollection as $r) {
+            if ($currentScore === null || $r['score'] != $currentScore) {
+                $currentRank++;
+                $currentScore = $r['score'];
+                $isRepeated = false;
+            } else {
+                $isRepeated = true;
+            }
 
             $rankings[] = array_merge($r, [
                 'rank_position' => $currentRank,
