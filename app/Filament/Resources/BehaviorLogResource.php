@@ -39,6 +39,35 @@ class BehaviorLogResource extends Resource
     {
         return $form
             ->schema([
+                Forms\Components\Radio::make('target_type')
+                    ->label('طريقة تحديد المخدومين')
+                    ->options([
+                        'single' => 'مخدوم واحد',
+                        'class_active' => 'كل الفصل (المخدومين النشطين)',
+                        'attendance_date' => 'الذين حضروا في تاريخ معين',
+                        'multi' => 'اختيار مخدومين محددين (متعدد)',
+                    ])
+                    ->default('single')
+                    ->reactive()
+                    ->required()
+                    ->visible(fn ($livewire) => $livewire instanceof Pages\CreateBehaviorLog)
+                    ->columnSpanFull(),
+                Forms\Components\Select::make('class_id')
+                    ->label('الفصل')
+                    ->options(function () {
+                        $query = \App\Models\KerazaClass::query();
+                        if (!auth()->user()->hasRole('super_admin')) {
+                            $query->whereIn('id', auth()->user()->assignedClasses->pluck('id'));
+                        }
+                        return $query->pluck('name', 'id')->toArray();
+                    })
+                    ->reactive()
+                    ->required(fn ($get) => in_array($get('target_type'), ['class_active', 'attendance_date', 'multi']))
+                    ->visible(fn ($get, $livewire) => $livewire instanceof Pages\CreateBehaviorLog && in_array($get('target_type'), ['class_active', 'attendance_date', 'multi'])),
+                Forms\Components\DatePicker::make('attendance_date')
+                    ->label('تاريخ الحضور')
+                    ->required(fn ($get) => $get('target_type') === 'attendance_date')
+                    ->visible(fn ($get, $livewire) => $livewire instanceof Pages\CreateBehaviorLog && $get('target_type') === 'attendance_date'),
                 Forms\Components\Select::make('student_season_enrollment_id')
                     ->label('المخدوم')
                     ->searchable()
@@ -71,7 +100,31 @@ class BehaviorLogResource extends Resource
                         }
                         return $record->student->full_name . ($record->class ? ' - ' . $record->class->name : '');
                     })
-                    ->required(),
+                    ->required(fn ($get, $livewire) => $livewire instanceof Pages\EditBehaviorLog || $get('target_type') === 'single')
+                    ->visible(fn ($get, $livewire) => $livewire instanceof Pages\EditBehaviorLog || $get('target_type') === 'single'),
+                Forms\Components\Select::make('student_season_enrollment_ids')
+                    ->label('المخدومين')
+                    ->multiple()
+                    ->searchable()
+                    ->options(function ($get) {
+                        $classId = $get('class_id');
+                        if (!$classId) {
+                            return [];
+                        }
+                        $activeSeason = Season::active();
+                        if (!$activeSeason) {
+                            return [];
+                        }
+                        return StudentSeasonEnrollment::where('class_id', $classId)
+                            ->where('season_id', $activeSeason->id)
+                            ->with('student')
+                            ->get()
+                            ->pluck('student.full_name', 'id')
+                            ->toArray();
+                    })
+                    ->required(fn ($get) => $get('target_type') === 'multi')
+                    ->visible(fn ($get, $livewire) => $livewire instanceof Pages\CreateBehaviorLog && $get('target_type') === 'multi')
+                    ->columnSpanFull(),
                 Forms\Components\Select::make('type')
                     ->label('النوع')
                     ->options([
