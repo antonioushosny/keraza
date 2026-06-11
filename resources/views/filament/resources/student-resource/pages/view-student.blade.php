@@ -225,13 +225,8 @@
                                     </div>
                                     <span class="text-sm font-black" style="color: {{ $textColor }};">{{ $es->score }} / {{ $es->exam?->total_score }}</span>
                                 </div>
-                                <div class="w-full h-2 rounded-full overflow-hidden" style="background: rgba(156,163,175,0.15);">
-                                    <div class="h-full rounded-full transition-all" style="width: {{ round($percent) }}%; background: {{ $barGradient }};"></div>
-                                </div>
-                                <div class="flex justify-between mt-1 text-[10px] font-bold text-gray-400 dark:text-gray-500">
-                                    <span>0%</span>
-                                    <span>{{ round($percent) }}%</span>
-                                    <span>100%</span>
+                                <div style="width: 100%; height: 8px; border-radius: 9999px; background: rgba(156,163,175,0.15); overflow: hidden;">
+                                    <div style="width: {{ round($percent) }}%; height: 100%; border-radius: 9999px; background: {{ $barGradient }}; transition: width 0.5s ease-in-out;"></div>
                                 </div>
                                 @if($es->notes)
                                     <div class="text-xs font-bold px-2.5 py-1 rounded-lg mt-2 inline-block"
@@ -274,8 +269,8 @@
                                     <span class="text-sm font-bold text-gray-800 dark:text-gray-200">{{ $ms->memorizationItem?->title ?? 'محفوظة' }}</span>
                                     <span class="text-sm font-black" style="color: {{ $mTextColor }};">{{ $ms->score }} / {{ $maxPoints }}</span>
                                 </div>
-                                <div class="w-full h-2 rounded-full overflow-hidden" style="background: rgba(156,163,175,0.15);">
-                                    <div class="h-full rounded-full transition-all" style="width: {{ round($mPercent) }}%; background: {{ $mBarGradient }};"></div>
+                                <div style="width: 100%; height: 8px; border-radius: 9999px; background: rgba(156,163,175,0.15); overflow: hidden;">
+                                    <div style="width: {{ round($mPercent) }}%; height: 100%; border-radius: 9999px; background: {{ $mBarGradient }}; transition: width 0.5s ease-in-out;"></div>
                                 </div>
                                 @if($ms->notes)
                                     <div class="text-xs font-bold px-2.5 py-1 rounded-lg mt-2 inline-block"

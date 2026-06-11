@@ -394,111 +394,63 @@
                                     <svg x-show="open" class="w-4 h-4 transition-transform duration-300" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 15l7-7 7 7"></path></svg>
                                 </button>
 
-                                 <div x-show="open" x-collapse class="details-section mt-6 space-y-6 pt-6 border-t border-dashed border-gray-200" x-data="{ activeTab: 'attendance' }">
-                                     {{-- ── Mobile: full-width dropdown — shown only on screens < md (< 768px) ── --}}
-                                     <div class="md:hidden w-full relative" x-data="{ dropOpen: false }">
-                                         <button type="button"
-                                             @click="dropOpen = !dropOpen"
-                                             @click.outside="dropOpen = false"
-                                             style="width:100%; display:flex; flex-wrap:nowrap; align-items:center; justify-content:space-between; gap:8px; padding:12px 16px; background:white; border:1.5px solid #e5e7eb; border-radius:14px; font-family:'Cairo',sans-serif; font-size:14px; font-weight:700; color:#111827; cursor:pointer; box-shadow:0 2px 8px rgba(0,0,0,0.04); box-sizing:border-box;">
-                                             <span style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" x-text="{
-                                                 attendance:    '📅 الحضور والغياب',
-                                                 exams:         '📝 الامتحانات',
-                                                 memorization:  '📖 المحفوظات',
-                                                 activities:    '🎯 الأنشطة',
-                                                 behavior:      '✨ السلوك والملاحظات'
-                                             }[activeTab]"></span>
-                                             <svg width="16" height="16" :style="dropOpen ? 'transform:rotate(180deg);transition:transform 0.2s;' : 'transition:transform 0.2s;'" style="flex-shrink:0; min-width:16px;" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
-                                         </button>
-                                         <div x-show="dropOpen" x-transition x-cloak
-                                             class="absolute top-[calc(100%+6px)] right-0 left-0 bg-white border border-gray-200 rounded-2xl overflow-hidden z-[200] shadow-lg flex flex-col divide-y divide-gray-100">
-                                             <button type="button"
-                                                 @click="activeTab = 'attendance'; dropOpen = false"
-                                                 :class="activeTab === 'attendance' ? 'bg-amber-50 text-amber-700 font-extrabold' : 'bg-white text-gray-700 font-semibold'"
-                                                 class="block w-full text-right px-5 py-4 border-none text-sm cursor-pointer hover:bg-amber-50/50 transition duration-150">
-                                                 📅 الحضور والغياب
-                                             </button>
-                                             <button type="button"
-                                                 @click="activeTab = 'exams'; dropOpen = false"
-                                                 :class="activeTab === 'exams' ? 'bg-amber-50 text-amber-700 font-extrabold' : 'bg-white text-gray-700 font-semibold'"
-                                                 class="block w-full text-right px-5 py-4 border-none text-sm cursor-pointer hover:bg-amber-50/50 transition duration-150">
-                                                 📝 الامتحانات
-                                             </button>
-                                             <button type="button"
-                                                 @click="activeTab = 'memorization'; dropOpen = false"
-                                                 :class="activeTab === 'memorization' ? 'bg-amber-50 text-amber-700 font-extrabold' : 'bg-white text-gray-700 font-semibold'"
-                                                 class="block w-full text-right px-5 py-4 border-none text-sm cursor-pointer hover:bg-amber-50/50 transition duration-150">
-                                                 📖 المحفوظات
-                                             </button>
-                                             <button type="button"
-                                                 @click="activeTab = 'activities'; dropOpen = false"
-                                                 :class="activeTab === 'activities' ? 'bg-amber-50 text-amber-700 font-extrabold' : 'bg-white text-gray-700 font-semibold'"
-                                                 class="block w-full text-right px-5 py-4 border-none text-sm cursor-pointer hover:bg-amber-50/50 transition duration-150">
-                                                 🎯 الأنشطة
-                                             </button>
-                                             <button type="button"
-                                                 @click="activeTab = 'behavior'; dropOpen = false"
-                                                 :class="activeTab === 'behavior' ? 'bg-amber-50 text-amber-700 font-extrabold' : 'bg-white text-gray-700 font-semibold'"
-                                                 class="block w-full text-right px-5 py-4 border-none text-sm cursor-pointer hover:bg-amber-50/50 transition duration-150">
-                                                 ✨ السلوك والملاحظات
-                                             </button>
+                                <div x-show="open" x-collapse class="details-section mt-6 space-y-6 pt-6 border-t border-dashed border-gray-200" x-data="{ activeTab: 'attendance' }">
+                                     {{-- Unified Pill Tabs --}}
+                                     <div class="bg-white border border-gray-200/60 rounded-2xl p-2 shadow-sm">
+                                         <div class="flex flex-wrap gap-1">
+                                             @php
+                                                 $tabs = [
+                                                     'attendance' => '📅 الحضور والغياب',
+                                                     'exams' => '📝 الامتحانات',
+                                                     'memorization' => '📖 المحفوظات',
+                                                     'activities' => '🎯 الأنشطة',
+                                                     'behavior' => '✨ السلوك والملاحظات',
+                                                 ];
+                                             @endphp
+                                             @foreach($tabs as $tabKey => $tabLabel)
+                                                 <button type="button"
+                                                         @click="activeTab = '{{ $tabKey }}'"
+                                                         :class="activeTab === '{{ $tabKey }}' ? 'text-white shadow-sm' : 'text-gray-600 hover:bg-gray-100'"
+                                                         :style="activeTab === '{{ $tabKey }}' ? 'background: #f59e0b;' : 'background: rgba(156,163,175,0.08);'"
+                                                         class="px-4 py-2.5 text-xs sm:text-sm font-bold rounded-xl transition-all whitespace-nowrap border-none cursor-pointer">
+                                                     {{ $tabLabel }}
+                                                 </button>
+                                             @endforeach
                                          </div>
-                                     </div>
-
-                                     {{-- ── Desktop: horizontal tabs (≥ 768px) ── --}}
-                                     <div class="hidden md:flex gap-2 overflow-x-auto pb-2 scrollbar-none">
-                                         <button type="button" @click="activeTab = 'attendance'" :class="activeTab === 'attendance' ? 'bg-amber-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'" class="px-4 py-2.5 text-xs sm:text-sm font-bold rounded-xl transition whitespace-nowrap border-none cursor-pointer">📅 الحضور والغياب</button>
-                                         <button type="button" @click="activeTab = 'exams'" :class="activeTab === 'exams' ? 'bg-amber-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'" class="px-4 py-2.5 text-xs sm:text-sm font-bold rounded-xl transition whitespace-nowrap border-none cursor-pointer">📝 الامتحانات</button>
-                                         <button type="button" @click="activeTab = 'memorization'" :class="activeTab === 'memorization' ? 'bg-amber-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'" class="px-4 py-2.5 text-xs sm:text-sm font-bold rounded-xl transition whitespace-nowrap border-none cursor-pointer">📖 المحفوظات</button>
-                                         <button type="button" @click="activeTab = 'activities'" :class="activeTab === 'activities' ? 'bg-amber-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'" class="px-4 py-2.5 text-xs sm:text-sm font-bold rounded-xl transition whitespace-nowrap border-none cursor-pointer">🎯 الأنشطة</button>
-                                         <button type="button" @click="activeTab = 'behavior'" :class="activeTab === 'behavior' ? 'bg-amber-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'" class="px-4 py-2.5 text-xs sm:text-sm font-bold rounded-xl transition whitespace-nowrap border-none cursor-pointer">✨ السلوك والملاحظات</button>
                                      </div>
 
                                      {{-- Tab contents --}}
                                      
                                      {{-- Attendance Tab --}}
                                      <div x-show="activeTab === 'attendance'" class="space-y-4">
-                                         <div class="flex items-center justify-between">
+                                         <div class="px-2 py-1">
                                              <h4 class="font-bold text-gray-800 text-sm flex items-center gap-1.5">
-                                                 <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                                 <span class="w-1.5 h-4 rounded-full bg-emerald-500"></span>
                                                  سجل الحضور والغياب التفصيلي:
                                              </h4>
                                          </div>
                                          @if($enrollment->attendance->count() > 0)
-                                             <div class="grid gap-2.5">
+                                             <div class="bg-white border border-gray-200/60 rounded-2xl overflow-hidden shadow-sm">
                                                  @foreach($enrollment->attendance->sortByDesc('session.date') as $att)
                                                      @php
-                                                         $statusClasses = [
-                                                             'present' => ['bg' => 'bg-emerald-50/40 border-r-emerald-500', 'badge' => 'bg-emerald-100 text-emerald-800 border-emerald-200/50'],
-                                                             'excused' => ['bg' => 'bg-amber-50/40 border-r-amber-500', 'badge' => 'bg-amber-100 text-amber-800 border-amber-200/50'],
-                                                             'absent' => ['bg' => 'bg-rose-50/40 border-r-rose-500', 'badge' => 'bg-rose-100 text-rose-800 border-rose-200/50']
-                                                         ];
-                                                         $currStatus = $statusClasses[$att->status] ?? $statusClasses['absent'];
+                                                         $statusConfig = match($att->status) {
+                                                             'present' => ['label' => 'حاضر', 'color' => '#10b981', 'bg' => 'rgba(16,185,129,0.1)', 'border' => 'rgba(16,185,129,0.2)'],
+                                                             'excused' => ['label' => 'معتذر', 'color' => '#f59e0b', 'bg' => 'rgba(245,158,11,0.1)', 'border' => 'rgba(245,158,11,0.2)'],
+                                                             default => ['label' => 'غائب', 'color' => '#ef4444', 'bg' => 'rgba(239,68,68,0.1)', 'border' => 'rgba(239,68,68,0.2)'],
+                                                         };
                                                      @endphp
-                                                     <div class="flex justify-between items-center bg-white border border-gray-100 p-3.5 rounded-2xl border-r-4 {{ $currStatus['bg'] }} shadow-[0_2px_8px_rgba(0,0,0,0.01)]">
-                                                         <div class="flex items-start gap-2.5">
-                                                             <div class="bg-gray-50 p-2 rounded-xl text-gray-400 mt-0.5">
-                                                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                                                     <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5"></path>
-                                                                 </svg>
-                                                             </div>
-                                                             <div>
-                                                                 <div class="text-[10px] font-bold text-gray-400">اليوم الدراسي</div>
-                                                                 <div class="text-sm font-extrabold text-gray-800">{{ $att->session?->date ?? 'غير محدد' }}</div>
-                                                                 @if($att->notes)
-                                                                     <div class="text-xs text-amber-700 font-bold mt-1 bg-amber-50/80 px-2 py-0.5 rounded-lg border border-amber-100/50 inline-block">📌 ملاحظة الخادم: {{ $att->notes }}</div>
-                                                                 @endif
-                                                             </div>
-                                                         </div>
-                                                         <div>
-                                                             @if($att->status === 'present')
-                                                                 <span class="inline-flex items-center text-xs font-black px-3 py-1 rounded-xl border {{ $currStatus['badge'] }}">حاضر</span>
-                                                             @elseif($att->status === 'excused')
-                                                                 <span class="inline-flex items-center text-xs font-black px-3 py-1 rounded-xl border {{ $currStatus['badge'] }}">معتذر</span>
-                                                             @else
-                                                                 <span class="inline-flex items-center text-xs font-black px-3 py-1 rounded-xl border {{ $currStatus['badge'] }}">غائب</span>
+                                                     <div class="flex items-center justify-between px-5 py-4 hover:bg-gray-50 transition" style="border-bottom: 1px solid rgba(156,163,175,0.08);">
+                                                         <div class="flex items-center gap-3">
+                                                             <div class="w-2 h-2 rounded-full" style="background: {{ $statusConfig['color'] }};"></div>
+                                                             <span class="text-sm font-bold text-gray-800">{{ $att->session?->date ?? 'غير محدد' }}</span>
+                                                             @if($att->notes)
+                                                                 <span class="text-xs text-amber-700 font-bold bg-amber-50 px-2 py-0.5 rounded-lg border border-amber-100/50">📌 {{ $att->notes }}</span>
                                                              @endif
                                                          </div>
+                                                         <span class="text-xs font-black px-3 py-1 rounded-lg"
+                                                               style="background: {{ $statusConfig['bg'] }}; border: 1px solid {{ $statusConfig['border'] }}; color: {{ $statusConfig['color'] }};">
+                                                             {{ $statusConfig['label'] }}
+                                                         </span>
                                                      </div>
                                                  @endforeach
                                              </div>
@@ -509,53 +461,41 @@
 
                                      {{-- Exams Tab --}}
                                      <div x-show="activeTab === 'exams'" class="space-y-4">
-                                         <h4 class="font-bold text-gray-800 text-sm flex items-center gap-1.5">
-                                             <span class="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>
-                                             درجات الامتحانات التفصيلية:
-                                         </h4>
+                                         <div class="px-2 py-1">
+                                             <h4 class="font-bold text-gray-800 text-sm flex items-center gap-1.5">
+                                                 <span class="w-1.5 h-4 rounded-full bg-indigo-500"></span>
+                                                 درجات الامتحانات التفصيلية:
+                                             </h4>
+                                         </div>
                                          @if($enrollment->examScores->count() > 0)
-                                             <div class="grid gap-3">
+                                             <div class="bg-white border border-gray-200/60 rounded-2xl overflow-hidden shadow-sm">
                                                  @foreach($enrollment->examScores as $score)
                                                      @php
                                                          $percent = $score->exam?->total_score > 0 ? ($score->score / $score->exam->total_score) * 100 : 0;
-                                                         $barColor = $percent >= 90 ? 'from-emerald-400 to-teal-500' : ($percent >= 50 ? 'from-amber-400 to-orange-500' : 'from-rose-400 to-red-500');
-                                                         $textColor = $percent >= 90 ? 'text-emerald-700' : ($percent >= 50 ? 'text-amber-700' : 'text-rose-700');
-                                                         $bgColor = $percent >= 90 ? 'bg-emerald-50/50' : ($percent >= 50 ? 'bg-amber-50/50' : 'bg-rose-50/50');
+                                                         $barGradient = $percent >= 90
+                                                             ? 'linear-gradient(90deg, #10b981, #14b8a6)'
+                                                             : ($percent >= 50
+                                                                 ? 'linear-gradient(90deg, #f59e0b, #ea580c)'
+                                                                 : 'linear-gradient(90deg, #ef4444, #dc2626)');
+                                                         $textColor = $percent >= 90 ? '#10b981' : ($percent >= 50 ? '#f59e0b' : '#ef4444');
                                                      @endphp
-                                                     <div class="bg-white border border-gray-100 p-4 rounded-2xl shadow-[0_2px_8px_rgba(0,0,0,0.01)] space-y-3">
-                                                         <div class="flex justify-between items-start">
-                                                             <div class="flex items-start gap-2.5">
-                                                                 <div class="bg-gray-50 p-2 rounded-xl text-gray-400">
-                                                                     <svg class="w-4.5 h-4.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                                                         <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10"></path>
-                                                                     </svg>
-                                                                 </div>
-                                                                 <div>
-                                                                     <div class="text-sm font-extrabold text-gray-800">{{ $score->exam?->title }}</div>
-                                                                     <div class="text-[10px] text-gray-400 font-bold mt-0.5">{{ $score->exam?->date }}</div>
-                                                                 </div>
+                                                     <div class="px-5 py-4 hover:bg-gray-50 transition" style="border-bottom: 1px solid rgba(156,163,175,0.08);">
+                                                         <div class="flex items-center justify-between mb-2">
+                                                             <div>
+                                                                 <span class="text-sm font-bold text-gray-800">{{ $score->exam?->title }}</span>
+                                                                 @if($score->exam?->date)
+                                                                     <span class="text-xs text-gray-400 mr-2">{{ $score->exam->date }}</span>
+                                                                 @endif
                                                              </div>
-                                                             <div class="text-right">
-                                                                 <div class="text-sm font-black {{ $textColor }}">
-                                                                     {{ $score->score }} / {{ $score->exam?->total_score }}
-                                                                 </div>
-                                                                 <div class="text-[10px] text-gray-400 font-bold">الدرجة</div>
-                                                             </div>
+                                                             <span class="text-sm font-black" style="color: {{ $textColor }};">{{ $score->score }} / {{ $score->exam?->total_score }}</span>
                                                          </div>
                                                          
-                                                         <div class="space-y-1">
-                                                             <div class="w-full bg-gray-100 h-2.5 rounded-full overflow-hidden">
-                                                                 <div class="bg-gradient-to-r {{ $barColor }} h-full rounded-full transition-all duration-500" style="width: {{ $percent }}%"></div>
-                                                             </div>
-                                                             <div class="flex justify-between text-[10px] font-bold text-gray-400">
-                                                                 <span>٠%</span>
-                                                                 <span>{{ round($percent) }}%</span>
-                                                                 <span>١٠٠%</span>
-                                                             </div>
+                                                         <div style="width: 100%; height: 8px; border-radius: 9999px; background: rgba(156,163,175,0.15); overflow: hidden;">
+                                                             <div style="width: {{ round($percent) }}%; height: 100%; border-radius: 9999px; background: {{ $barGradient }}; transition: width 0.5s ease-in-out;"></div>
                                                          </div>
                                                          
                                                          @if($score->notes)
-                                                             <div class="text-xs text-amber-700 font-bold bg-amber-50/80 px-2.5 py-1.5 rounded-xl border border-amber-100/50 inline-block">📌 ملاحظة: {{ $score->notes }}</div>
+                                                             <div class="text-xs text-amber-700 font-bold bg-amber-50 px-2.5 py-1 rounded-lg mt-2 inline-block border border-amber-100/50">📌 {{ $score->notes }}</div>
                                                          @endif
                                                      </div>
                                                  @endforeach
@@ -566,61 +506,38 @@
                                      </div>
 
                                      {{-- Memorization Tab --}}
-                                     <div x-show="activeTab === 'memorization'" class="space-y-4" style="width:100%; box-sizing:border-box;">
-                                         <h4 class="font-bold text-gray-800 text-sm flex items-center gap-1.5">
-                                             <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
-                                             سجل المحفوظات والتسميع التفصيلي:
-                                         </h4>
+                                     <div x-show="activeTab === 'memorization'" class="space-y-4">
+                                         <div class="px-2 py-1">
+                                             <h4 class="font-bold text-gray-800 text-sm flex items-center gap-1.5">
+                                                 <span class="w-1.5 h-4 rounded-full bg-amber-500"></span>
+                                                 سجل المحفوظات والتسميع التفصيلي:
+                                             </h4>
+                                         </div>
                                          @if($enrollment->memorizationScores->count() > 0)
-                                             <div class="grid gap-4 w-full">
+                                             <div class="bg-white border border-gray-200/60 rounded-2xl overflow-hidden shadow-sm">
                                                  @foreach($enrollment->memorizationScores as $memo)
                                                      @php
                                                          $maxPoints = $memo->memorizationItem?->max_points ?: 100;
                                                          $mPercent = $maxPoints > 0 ? ($memo->score / $maxPoints) * 100 : 0;
-                                                         
-                                                         $cardBorderClass = $mPercent >= 100 
-                                                             ? 'border-r-emerald-500 bg-emerald-50/10' 
-                                                             : ($mPercent > 0 ? 'border-r-amber-500 bg-amber-50/10' : 'border-r-rose-500 bg-rose-50/10');
-                                                             
-                                                         $barGradient = $mPercent >= 100
-                                                             ? 'from-emerald-400 to-teal-500'
-                                                             : ($mPercent > 0 ? 'from-amber-400 to-orange-500' : 'from-rose-400 to-red-500');
-                                                             
-                                                         $textColor = $mPercent >= 100 ? 'text-emerald-700' : ($mPercent > 0 ? 'text-amber-700' : 'text-rose-700');
+                                                         $mBarGradient = $mPercent >= 90
+                                                             ? 'linear-gradient(90deg, #10b981, #14b8a6)'
+                                                             : ($mPercent >= 50
+                                                                 ? 'linear-gradient(90deg, #f59e0b, #ea580c)'
+                                                                 : 'linear-gradient(90deg, #ef4444, #dc2626)');
+                                                         $mTextColor = $mPercent >= 90 ? '#10b981' : ($mPercent >= 50 ? '#f59e0b' : '#ef4444');
                                                      @endphp
-                                                     <div class="bg-white border border-gray-100 p-4 rounded-2xl border-r-4 {{ $cardBorderClass }} shadow-[0_2px_8px_rgba(0,0,0,0.01)] space-y-3 w-full box-sizing:border-box;">
-                                                         <div class="flex justify-between items-start">
-                                                             <div class="flex items-start gap-2.5">
-                                                                 <div class="bg-gray-50 p-2 rounded-xl text-gray-400">
-                                                                     <svg class="w-4.5 h-4.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                                                         <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"></path>
-                                                                     </svg>
-                                                                 </div>
-                                                                 <div>
-                                                                     <div class="text-sm font-extrabold text-gray-800">{{ $memo->memorizationItem?->title }}</div>
-                                                                 </div>
-                                                             </div>
-                                                             <div class="text-right">
-                                                                 <div class="text-sm font-black {{ $textColor }}">
-                                                                     {{ $memo->score }} / {{ $maxPoints }}
-                                                                 </div>
-                                                                 <div class="text-[10px] text-gray-400 font-bold">الدرجة</div>
-                                                             </div>
+                                                     <div class="px-5 py-4 hover:bg-gray-50 transition" style="border-bottom: 1px solid rgba(156,163,175,0.08);">
+                                                         <div class="flex items-center justify-between mb-2">
+                                                             <span class="text-sm font-bold text-gray-800">{{ $memo->memorizationItem?->title ?? 'محفوظة' }}</span>
+                                                             <span class="text-sm font-black" style="color: {{ $mTextColor }};">{{ $memo->score }} / {{ $maxPoints }}</span>
                                                          </div>
                                                          
-                                                         <div class="space-y-1">
-                                                             <div class="w-full bg-gray-100 h-2.5 rounded-full overflow-hidden">
-                                                                 <div class="bg-gradient-to-r {{ $barGradient }} h-full rounded-full transition-all duration-500" style="width: {{ $mPercent }}%"></div>
-                                                             </div>
-                                                             <div class="flex justify-between text-[10px] font-bold text-gray-400">
-                                                                 <span>٠%</span>
-                                                                 <span>{{ round($mPercent) }}%</span>
-                                                                 <span>١٠٠%</span>
-                                                             </div>
+                                                         <div style="width: 100%; height: 8px; border-radius: 9999px; background: rgba(156,163,175,0.15); overflow: hidden;">
+                                                             <div style="width: {{ round($mPercent) }}%; height: 100%; border-radius: 9999px; background: {{ $mBarGradient }}; transition: width 0.5s ease-in-out;"></div>
                                                          </div>
                                                          
                                                          @if($memo->notes)
-                                                             <div class="text-xs text-amber-700 font-bold bg-amber-50/80 px-2.5 py-1.5 rounded-xl border border-amber-100/50 inline-block font-bold">📌 ملاحظة: {{ $memo->notes }}</div>
+                                                             <div class="text-xs text-amber-700 font-bold bg-amber-50 px-2.5 py-1 rounded-lg mt-2 inline-block border border-amber-100/50">📌 {{ $memo->notes }}</div>
                                                          @endif
                                                      </div>
                                                  @endforeach
@@ -632,39 +549,33 @@
 
                                      {{-- Activities Tab --}}
                                      <div x-show="activeTab === 'activities'" class="space-y-4">
-                                         <h4 class="font-bold text-gray-800 text-sm flex items-center gap-1.5">
-                                             <span class="w-1.5 h-1.5 rounded-full bg-sky-500"></span>
-                                             الأنشطة والمسابقات المشترك بها الطفل:
-                                         </h4>
+                                         <div class="px-2 py-1">
+                                             <h4 class="font-bold text-gray-800 text-sm flex items-center gap-1.5">
+                                                 <span class="w-1.5 h-4 rounded-full bg-sky-500"></span>
+                                                 الأنشطة والمسابقات المشترك بها الطفل:
+                                             </h4>
+                                         </div>
                                          @if($enrollment->activityEnrollments->count() > 0)
-                                             <div class="grid gap-3">
+                                             <div class="bg-white border border-gray-200/60 rounded-2xl overflow-hidden shadow-sm">
                                                  @foreach($enrollment->activityEnrollments as $actEnroll)
                                                      @php
                                                          $isQualified = $actEnroll->status === 'qualified';
-                                                         $statusBadge = $isQualified ? 'bg-emerald-100 text-emerald-800 border-emerald-200/50' : 'bg-sky-100 text-sky-800 border-sky-200/50';
+                                                         $statusBadge = $isQualified ? 'background: rgba(16,185,129,0.1); color: #10b981;' : 'background: rgba(14,165,233,0.1); color: #0ea5e9;';
                                                          $scoreVal = $actEnroll->scores->avg('score') ?? 0;
                                                      @endphp
-                                                     <div class="bg-white border border-gray-100 p-4 rounded-2xl border-r-4 border-r-sky-500 shadow-[0_2px_8px_rgba(0,0,0,0.01)] flex justify-between items-center">
-                                                         <div class="flex items-start gap-2.5">
-                                                             <div class="bg-gray-50 p-2 rounded-xl text-gray-400">
-                                                                 <svg class="w-4.5 h-4.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                                                     <path stroke-linecap="round" stroke-linejoin="round" d="M15.59 14.37a6 6 0 01-5.84 7.38v-4.8m5.84-2.58a14.98 14.98 0 006.16-12.12A14.98 14.98 0 009.64 8.38m6 .59a14.98 14.98 0 01-3 1.82m-3-1.82a14.98 14.98 0 01-3 1.82M9.64 8.38a14.98 14.98 0 00-6.16 12.12A14.98 14.98 0 0015.6 14.37m-5.84-6a6 6 0 01-7.38 5.84h4.8m1.16-5.84a14.98 14.98 0 00-6.16 12.12"></path>
-                                                                 </svg>
-                                                             </div>
-                                                             <div>
-                                                                 <div class="text-sm font-extrabold text-gray-800">🎯 {{ $actEnroll->activity?->title }}</div>
-                                                                 <div class="mt-1 flex items-center gap-1.5">
-                                                                     <span class="inline-flex items-center text-[10px] font-black px-2 py-0.5 rounded-lg border {{ $statusBadge }}">
-                                                                         {{ $isQualified ? 'مؤهل' : 'مشترك' }}
-                                                                     </span>
-                                                                 </div>
-                                                             </div>
+                                                     <div class="flex items-center justify-between px-5 py-4 hover:bg-gray-50 transition" style="border-bottom: 1px solid rgba(156,163,175,0.08);">
+                                                         <div class="flex items-center gap-2.5">
+                                                             <span class="text-sm font-bold text-gray-800">{{ $actEnroll->activity?->title }}</span>
+                                                             <span class="text-[10px] font-black px-2 py-0.5 rounded-lg" style="{{ $statusBadge }}">
+                                                                 {{ $isQualified ? 'مؤهل' : 'مشترك' }}
+                                                             </span>
                                                          </div>
-                                                         <div class="text-right">
-                                                             <div class="text-sm font-black text-amber-600">
-                                                                 {{ round($scoreVal) }}%
-                                                             </div>
-                                                             <div class="text-[10px] text-gray-400 font-bold">الدرجة</div>
+                                                         <div class="flex items-center gap-2">
+                                                             @if($scoreVal > 0)
+                                                                 <span class="text-sm font-black text-amber-600">{{ round($scoreVal) }}%</span>
+                                                             @else
+                                                                 <span class="text-xs text-gray-400">لم يتم التقييم</span>
+                                                             @endif
                                                          </div>
                                                      </div>
                                                  @endforeach
@@ -676,48 +587,40 @@
 
                                      {{-- Behavior & Remarks Tab --}}
                                      <div x-show="activeTab === 'behavior'" class="space-y-4">
-                                         <div>
-                                             <h4 class="font-bold text-gray-800 text-sm mb-2.5 flex items-center gap-1.5">
-                                                 <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                         <div class="px-2 py-1">
+                                             <h4 class="font-bold text-gray-800 text-sm flex items-center gap-1.5">
+                                                 <span class="w-1.5 h-4 rounded-full bg-emerald-500"></span>
                                                  سجل النقاط والملاحظات السلوكية:
                                              </h4>
-                                             @if($enrollment->behaviorLogs->count() > 0)
-                                                 <div class="space-y-2.5">
-                                                     @foreach($enrollment->behaviorLogs as $log)
-                                                         @php
-                                                             $isPos = $log->type === 'positive';
-                                                             $logBg = $isPos ? 'bg-emerald-50/30 border-r-emerald-500' : 'bg-rose-50/30 border-r-rose-500';
-                                                             $textPointsColor = $isPos ? 'text-emerald-700 bg-emerald-100/50' : 'text-rose-700 bg-rose-100/50';
-                                                         @endphp
-                                                         <div class="p-3.5 rounded-2xl border border-gray-100 border-r-4 {{ $logBg }} flex justify-between items-center shadow-[0_2px_8px_rgba(0,0,0,0.01)]">
-                                                             <div class="flex items-start gap-2.5">
-                                                                 <div class="bg-gray-50 p-2 rounded-xl text-gray-400">
-                                                                     @if($isPos)
-                                                                         <span class="text-emerald-500 text-sm">✨</span>
-                                                                     @else
-                                                                         <span class="text-rose-500 text-sm">⚠️</span>
-                                                                     @endif
-                                                                 </div>
-                                                                 <div>
-                                                                     <div class="text-[10px] font-bold text-gray-400">{{ $log->created_at->format('Y-m-d') }}</div>
-                                                                     <div class="text-sm font-extrabold text-gray-800 mt-0.5">{{ $log->reason }}</div>
-                                                                 </div>
-                                                             </div>
+                                         </div>
+                                         @if($enrollment->behaviorLogs->count() > 0)
+                                             <div class="bg-white border border-gray-200/60 rounded-2xl overflow-hidden shadow-sm">
+                                                 @foreach($enrollment->behaviorLogs->sortByDesc('created_at') as $log)
+                                                     @php
+                                                         $isPos = $log->type === 'positive';
+                                                         $logBg = $isPos ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)';
+                                                         $logColor = $isPos ? '#10b981' : '#ef4444';
+                                                     @endphp
+                                                     <div class="flex items-center justify-between px-5 py-4 hover:bg-gray-50 transition" style="border-bottom: 1px solid rgba(156,163,175,0.08);">
+                                                         <div class="flex items-center gap-2.5">
+                                                             <span class="text-sm">{{ $isPos ? '✨' : '⚠️' }}</span>
                                                              <div>
-                                                                 <span class="inline-flex items-center text-xs font-black px-2.5 py-1 rounded-xl {{ $textPointsColor }}">
-                                                                     {{ $isPos ? '+' : '' }}{{ $log->points }}
-                                                                 </span>
+                                                                 <span class="text-sm font-bold text-gray-800">{{ $log->reason }}</span>
+                                                                 <span class="text-[10px] text-gray-400 mr-2">{{ $log->created_at->format('Y-m-d') }}</span>
                                                              </div>
                                                          </div>
-                                                     @endforeach
-                                                 </div>
-                                             @else
-                                                 <div class="text-center py-8 bg-gray-50/50 rounded-2xl border border-dashed border-gray-200 text-gray-400 text-xs">سجل السلوك نظيف ولا توجد ملاحظات سلوكية.</div>
-                                             @endif
-                                         </div>
+                                                         <span class="text-xs font-black px-2.5 py-1 rounded-lg" style="background: {{ $logBg }}; color: {{ $logColor }};">
+                                                             {{ $isPos ? '+' : '' }}{{ $log->points }} نقطة
+                                                         </span>
+                                                     </div>
+                                                 @endforeach
+                                             </div>
+                                         @else
+                                             <div class="text-center py-8 bg-gray-50/50 rounded-2xl border border-dashed border-gray-200 text-gray-400 text-xs">سجل السلوك نظيف ولا توجد ملاحظات سلوكية.</div>
+                                         @endif
 
-                                         <div class="bg-gradient-to-br from-blue-50/70 to-indigo-50/40 border border-blue-100/50 p-4 rounded-2xl shadow-[0_4px_20px_rgba(59,130,246,0.02)] flex items-start gap-3">
-                                             <div class="bg-white p-2 rounded-xl shadow-sm text-blue-600">
+                                         <div class="bg-gradient-to-br from-blue-50/70 to-indigo-50/40 border border-blue-100/50 p-4 rounded-2xl shadow-sm flex items-start gap-3 mt-4">
+                                             <div class="bg-white p-2 rounded-xl shadow-sm text-blue-600 flex-shrink-0">
                                                  <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                                                      <path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
                                                  </svg>
