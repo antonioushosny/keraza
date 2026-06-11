@@ -124,6 +124,7 @@ class Reports extends Page
             $attendeeCounts = [];
             foreach ($classExams as $exam) {
                 $attendeeCounts[] = $allExamScores->where('exam_id', $exam->id)
+                    ->where('score', '>', 0)
                     ->whereIn('student_season_enrollment_id', $activeEnrollmentIds)
                     ->pluck('student_season_enrollment_id')
                     ->unique()
@@ -139,6 +140,9 @@ class Reports extends Page
 
             foreach ($allExamScores as $es) {
                 if (!in_array($es->student_season_enrollment_id, $activeEnrollmentIds)) {
+                    continue;
+                }
+                if ($es->score <= 0) {
                     continue;
                 }
                 $total = $es->exam?->total_score ?: 100;
