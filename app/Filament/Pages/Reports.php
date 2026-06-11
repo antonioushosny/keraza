@@ -119,22 +119,32 @@ class Reports extends Page
             $examIds = $classExams->pluck('id')->toArray();
             $allExamScores = \App\Models\ExamScore::whereIn('exam_id', $examIds)->with('exam')->get();
 
+            $activeEnrollmentIds = $activeEnrollments->pluck('id')->toArray();
+
             $attendeeCounts = [];
             foreach ($classExams as $exam) {
-                $attendeeCounts[] = $allExamScores->where('exam_id', $exam->id)->count();
+                $attendeeCounts[] = $allExamScores->where('exam_id', $exam->id)
+                    ->whereIn('student_season_enrollment_id', $activeEnrollmentIds)
+                    ->pluck('student_season_enrollment_id')
+                    ->unique()
+                    ->count();
             }
             $avgAttendees = count($attendeeCounts) > 0 ? array_sum($attendeeCounts) / count($attendeeCounts) : 0;
 
             $totalScorePercentageSum = 0;
-            $scoresCount = $allExamScores->count();
+            $scoresCount = 0;
             $above75Count = 0;
             $above50Count = 0;
             $below50Count = 0;
 
             foreach ($allExamScores as $es) {
+                if (!in_array($es->student_season_enrollment_id, $activeEnrollmentIds)) {
+                    continue;
+                }
                 $total = $es->exam?->total_score ?: 100;
                 $percentage = $total > 0 ? ($es->score / $total) * 100 : 0;
                 $totalScorePercentageSum += $percentage;
+                $scoresCount++;
 
                 if ($percentage > 75) {
                     $above75Count++;
