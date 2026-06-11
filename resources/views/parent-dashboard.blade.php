@@ -248,56 +248,62 @@
                             $rank = $data['rank_position'];
                         @endphp
                         
-                        <div class="student-card shadow-[0_8px_30px_rgb(0,0,0,0.02)] border border-gray-100/80 p-5 sm:p-7 relative transition-all duration-300 hover:shadow-[0_12px_40px_rgb(0,0,0,0.04)] mb-6" x-data="{ open: false }">
-                            {{-- Card Header: avatar | name+badges | score --}}
-                            <div style="display:flex; align-items:center; gap:12px; margin-bottom:20px; width:100%; box-sizing:border-box;">
-                                {{-- Avatar --}}
-                                <div style="position:relative; flex-shrink:0;">
-                                    <form action="{{ route($routePrefix . 'parent.student.upload-image', $child->id) }}" method="POST" enctype="multipart/form-data" id="upload-form-{{ $child->id }}">
-                                        @csrf
-                                        <label class="cursor-pointer block relative group" style="display:block; position:relative;">
-                                            <input type="file" name="profile_image" accept="image/*" class="hidden" onchange="document.getElementById('upload-form-{{ $child->id }}').submit()">
-                                            @if($child->profile_image)
-                                                <img src="/storage/{{ $child->profile_image }}" style="width:64px; height:64px; border-radius:16px; object-fit:cover; border:2px solid #f59e0b; box-shadow:0 4px 12px rgba(0,0,0,0.1);" alt="{{ $child->full_name }}">
-                                            @else
-                                                <div style="width:64px; height:64px; border-radius:16px; background:linear-gradient(135deg,#fef3c7,#fde68a); color:#b45309; display:flex; align-items:center; justify-content:center; font-size:24px; font-weight:900; border:2px solid #f59e0b;">
-                                                    {{ mb_substr($child->full_name, 0, 1) }}
+                        <div class="student-card shadow-[0_8px_30px_rgb(0,0,0,0.02)] border border-gray-100/80 p-0 overflow-hidden relative transition-all duration-300 hover:shadow-[0_12px_40px_rgb(0,0,0,0.04)] mb-6" x-data="{ open: false }">
+                            <div class="p-6 sm:p-8" style="background: linear-gradient(to left, rgba(245,158,11,0.08), transparent); border-bottom: 1px solid rgba(156,163,175,0.12); width:100%; box-sizing:border-box;">
+                                <div class="flex flex-col sm:flex-row items-start sm:items-center gap-5 justify-between">
+                                    <div class="flex flex-row items-center gap-4 min-w-0 flex-grow">
+                                        {{-- Avatar --}}
+                                        <div style="position:relative; flex-shrink:0;">
+                                            <form action="{{ route($routePrefix . 'parent.student.upload-image', $child->id) }}" method="POST" enctype="multipart/form-data" id="upload-form-{{ $child->id }}">
+                                                @csrf
+                                                <label class="cursor-pointer block relative group" style="display:block; position:relative;">
+                                                    <input type="file" name="profile_image" accept="image/*" class="hidden" onchange="document.getElementById('upload-form-{{ $child->id }}').submit()">
+                                                    @if($child->profile_image)
+                                                        <img src="/storage/{{ $child->profile_image }}" class="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl object-cover shadow-lg" style="border: 2px solid #f59e0b;" alt="{{ $child->full_name }}">
+                                                    @else
+                                                        <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl flex items-center justify-center text-2xl sm:text-3xl font-black shadow-lg"
+                                                             style="background: linear-gradient(135deg, #fde68a, #fbbf24); color: #92400e; border: 2px solid #f59e0b;">
+                                                            {{ mb_substr($child->full_name, 0, 1) }}
+                                                        </div>
+                                                    @endif
+                                                    <div class="absolute inset-0 bg-black/40 rounded-2xl opacity-0 group-hover:opacity-100 transition duration-300 flex items-center justify-center text-white text-[10px] font-bold">تعديل</div>
+                                                    <div style="position:absolute; bottom:-6px; left:-6px; background:#f59e0b; color:white; padding:4px; border-radius:8px; border:2px solid white;">
+                                                        <svg style="width:12px;height:12px;" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z"></path><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0z"></path></svg>
+                                                    </div>
+                                                </label>
+                                            </form>
+                                            @if($rank <= 3 && $rank !== null)
+                                                <div style="position:absolute; top:-10px; right:-10px; background:white; font-size:16px; padding:4px; border-radius:50%; box-shadow:0 2px 8px rgba(0,0,0,0.15); border:1px solid #fef3c7; z-index:10;" class="animate-bounce" style="animation-duration:3s;">
+                                                    {{ $rank == 1 ? '🥇' : ($rank == 2 ? '🥈' : '🥉') }}
                                                 </div>
                                             @endif
-                                            <div class="absolute inset-0 bg-black/40 rounded-2xl opacity-0 group-hover:opacity-100 transition duration-300 flex items-center justify-center text-white text-[10px] font-bold">تعديل</div>
-                                            <div style="position:absolute; bottom:-6px; left:-6px; background:#f59e0b; color:white; padding:4px; border-radius:8px; border:2px solid white;">
-                                                <svg style="width:12px;height:12px;" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z"></path><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0z"></path></svg>
-                                            </div>
-                                        </label>
-                                    </form>
-                                    @if($rank <= 3 && $rank !== null)
-                                        <div style="position:absolute; top:-10px; right:-10px; background:white; font-size:16px; padding:4px; border-radius:50%; box-shadow:0 2px 8px rgba(0,0,0,0.15); border:1px solid #fef3c7; z-index:10;" class="animate-bounce" style="animation-duration:3s;">
-                                            {{ $rank == 1 ? '🥇' : ($rank == 2 ? '🥈' : '🥉') }}
                                         </div>
-                                    @endif
-                                </div>
-                                {{-- Name + Badges (takes all remaining space, min-width 0 so it can shrink) --}}
-                                <div style="flex:1; min-width:0; overflow:hidden;">
-                                    <h3 class="child-name text-base sm:text-lg font-black text-gray-900">{{ $child->full_name }}</h3>
-                                    <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:6px;">
-                                        <span class="inline-flex items-center gap-1 bg-blue-50 text-blue-600 text-xs font-bold px-2 py-0.5 rounded-xl border border-blue-100/55">
-                                            📚 {{ $enrollment?->class?->name ?? 'غير مسجل' }}
-                                        </span>
-                                        @if($rank)
-                                            <span class="inline-flex items-center gap-1 bg-amber-50 text-amber-600 text-xs font-bold px-2 py-0.5 rounded-xl border border-amber-100/55">
-                                                🏆 الترتيب: {{ $rank }}
-                                            </span>
-                                        @endif
+                                        {{-- Name + Badges --}}
+                                        <div class="min-w-0">
+                                            <h2 class="text-base sm:text-2xl font-black text-gray-950">{{ $child->full_name }}</h2>
+                                            <div class="flex flex-wrap gap-2 mt-2">
+                                                <span class="inline-flex items-center gap-1 bg-blue-50 text-blue-600 text-[10px] sm:text-xs font-bold px-2 py-0.5 rounded-xl border border-blue-100/55">
+                                                    📚 {{ $enrollment?->class?->name ?? 'غير مسجل' }}
+                                                </span>
+                                                @if($rank)
+                                                    <span class="inline-flex items-center gap-1 bg-amber-50 text-amber-600 text-[10px] sm:text-xs font-bold px-2 py-0.5 rounded-xl border border-amber-100/55">
+                                                        🏆 الترتيب: {{ $rank }}
+                                                    </span>
+                                                @endif
+                                            </div>
+                                        </div>
                                     </div>
-                                </div>
-                                {{-- Score badge (fixed width, never shrinks) --}}
-                                <div style="flex-shrink:0; background:linear-gradient(135deg,#f59e0b,#d97706); color:white; border-radius:16px; padding:10px 14px; text-align:center; min-width:64px; box-shadow:0 2px 8px rgba(245,158,11,0.3);">
-                                    <div style="font-size:20px; font-weight:900; line-height:1;">{{ $rankInfo['score'] ?? 0 }}%</div>
-                                    <div style="font-size:9px; font-weight:700; color:rgba(255,255,255,0.8); text-transform:uppercase; letter-spacing:0.05em; margin-top:2px;">المعدل</div>
+                                    {{-- Score Badge --}}
+                                    <div class="flex-shrink-0 text-white rounded-2xl px-5 py-3 text-center shadow-lg sm:mr-auto w-full sm:w-auto mt-3 sm:mt-0"
+                                         style="background: linear-gradient(135deg, #f59e0b, #d97706);">
+                                        <div class="text-2xl font-black">{{ $rankInfo['score'] ?? 0 }}%</div>
+                                        <div class="text-[10px] font-bold uppercase mt-0.5" style="color: rgba(255,255,255,0.8);">المعدل</div>
+                                    </div>
                                 </div>
                             </div>
 
-                            @if($enrollment)
+                            <div class="p-5 sm:p-7">
+                                @if($enrollment)
                                 {{-- Quick Stats --}}
                                 <div class="grid grid-cols-2 {{ $settings->show_attendance_percentage ? 'sm:grid-cols-4' : 'sm:grid-cols-3' }} gap-3 mb-5">
                                     @if($settings->show_attendance_percentage)
@@ -633,6 +639,7 @@
                                      </div>
                                  </div>
                             @endif
+                            </div>
                         </div>
                     @endforeach
                 </div>
