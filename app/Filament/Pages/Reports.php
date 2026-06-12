@@ -36,13 +36,21 @@ class Reports extends Page
             return;
         }
 
+        $user = auth()->user();
+        $isSuperAdmin = $user?->hasRole('super_admin') ?? false;
+        $assignedClassIds = !$isSuperAdmin && $user ? $user->assignedClasses->pluck('id')->toArray() : [];
+
         // 1. Core Stats
-        $enrollments = StudentSeasonEnrollment::where('season_id', $activeSeason->id)
-            ->with(['attendance', 'examScores.exam', 'memorizationScores.memorizationItem', 'activityEnrollments.scores', 'behaviorLogs', 'student'])
-            ->get();
+        $enrollmentsQuery = StudentSeasonEnrollment::where('season_id', $activeSeason->id)
+            ->with(['attendance', 'examScores.exam', 'memorizationScores.memorizationItem', 'activityEnrollments.scores', 'behaviorLogs', 'student']);
+
+        if (!$isSuperAdmin) {
+            $enrollmentsQuery->whereIn('class_id', $assignedClassIds);
+        }
+        $enrollments = $enrollmentsQuery->get();
 
         $totalStudents = $enrollments->count();
-        $totalClasses = KerazaClass::count();
+        $totalClasses = !$isSuperAdmin ? count($assignedClassIds) : KerazaClass::count();
 
         // Determine active enrollments (has at least one 'present' or 'excused' attendance)
         $activeEnrollmentsAll = $enrollments->filter(function ($e) {
@@ -67,7 +75,7 @@ class Reports extends Page
         ];
 
         // 2. Class Comparison, Attendance, and Exam Stats
-        $classes = KerazaClass::all();
+        $classes = !$isSuperAdmin ? KerazaClass::whereIn('id', $assignedClassIds)->get() : KerazaClass::all();
         foreach ($classes as $class) {
             $classEnrollments = $enrollments->where('class_id', $class->id);
             if ($classEnrollments->isEmpty()) {
@@ -197,9 +205,6 @@ class Reports extends Page
             ->with(['enrollment.student', 'enrollment.class', 'enrollment.attendance'])
             ->get();
 
-        $user = auth()->user();
-        $isSuperAdmin = $user->hasRole('super_admin');
-        $assignedClassIds = !$isSuperAdmin ? $user->assignedClasses->pluck('id')->toArray() : [];
 
         foreach ($negativeLogs as $log) {
             $enrollment = $log->enrollment;

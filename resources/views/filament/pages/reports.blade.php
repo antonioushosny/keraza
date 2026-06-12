@@ -6,7 +6,6 @@
             <p class="text-gray-500 mt-2 dark:text-gray-400">يرجى تفعيل أحد المواسم من صفحة المواسم لعرض تقارير الأداء.</p>
         </div>
     @else
-        @if(auth()->user()?->hasRole('super_admin'))
         {{-- Stat Cards --}}
         <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
             <div class="bg-white p-6 rounded-3xl border shadow-sm dark:bg-gray-800 dark:border-gray-700 flex items-center gap-4">
@@ -189,7 +188,6 @@
                 </table>
             </div>
         </div>
-        @endif
 
         {{-- Alerts Section --}}
         @php
@@ -338,10 +336,9 @@
             }
         </script>
 
-        @if(auth()->user()?->hasRole('super_admin'))
-            <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-            <script>
-                document.addEventListener('DOMContentLoaded', function () {
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        <script>
+            document.addEventListener('DOMContentLoaded', function () {
                     const attendanceData = @json($attendanceStats);
                     const examData = @json($examStats);
 
@@ -455,7 +452,6 @@
                         }
                     });
                 });
-            </script>
-        @endif
+        </script>
     @endif
 </x-filament-panels::page>
