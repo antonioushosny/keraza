@@ -6,6 +6,7 @@
             <p class="text-gray-500 mt-2 dark:text-gray-400">يرجى تفعيل أحد المواسم من صفحة المواسم لعرض تقارير الأداء.</p>
         </div>
     @else
+        @if(auth()->user()?->hasRole('super_admin'))
         {{-- Stat Cards --}}
         <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
             <div class="bg-white p-6 rounded-3xl border shadow-sm dark:bg-gray-800 dark:border-gray-700 flex items-center gap-4">
@@ -70,12 +71,17 @@
 
         {{-- Attendance & Counts Table --}}
         <div class="bg-white rounded-3xl border shadow-sm dark:bg-gray-800 dark:border-gray-700 overflow-hidden mt-8">
-            <div class="px-6 py-5 border-b dark:border-gray-700">
-                <h3 class="text-lg font-black text-gray-800 dark:text-white">📅 تقرير أعداد وحضور المخدومين بالصفوف</h3>
-                <p class="text-xs text-gray-400 mt-1">توزيع المخدومين بين نشطين وغير نشطين مع نسب الحضور التفصيلية</p>
+            <div class="px-6 py-5 border-b dark:border-gray-700 flex justify-between items-center">
+                <div>
+                    <h3 class="text-lg font-black text-gray-800 dark:text-white">📅 تقرير أعداد وحضور المخدومين بالصفوف</h3>
+                    <p class="text-xs text-gray-400 mt-1">توزيع المخدومين بين نشطين وغير نشطين مع نسب الحضور التفصيلية</p>
+                </div>
+                <button type="button" onclick="exportTableToCsv('attendanceTable', 'تقرير_حضور_واعداد_المخدومين')" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition border-none cursor-pointer flex items-center gap-2">
+                    📥 تصدير إكسيل
+                </button>
             </div>
             <div class="overflow-x-auto">
-                <table class="w-full text-right border-collapse">
+                <table id="attendanceTable" class="w-full text-right border-collapse">
                     <thead>
                         <tr class="bg-gray-50 border-b dark:bg-gray-700/50 dark:border-gray-700">
                             <th class="px-6 py-4 text-sm font-bold text-gray-600 dark:text-gray-300">اسم الفصل</th>
@@ -104,12 +110,17 @@
 
         {{-- Exams Stats Table --}}
         <div class="bg-white rounded-3xl border shadow-sm dark:bg-gray-800 dark:border-gray-700 overflow-hidden mt-8">
-            <div class="px-6 py-5 border-b dark:border-gray-700">
-                <h3 class="text-lg font-black text-gray-800 dark:text-white">📝 تقرير إحصائيات الامتحانات للفصول</h3>
-                <p class="text-xs text-gray-400 mt-1">تفاصيل نتائج ومستويات الممتحنين الفعليين بالصفوف</p>
+            <div class="px-6 py-5 border-b dark:border-gray-700 flex justify-between items-center">
+                <div>
+                    <h3 class="text-lg font-black text-gray-800 dark:text-white">📝 تقرير إحصائيات الامتحانات للفصول</h3>
+                    <p class="text-xs text-gray-400 mt-1">تفاصيل نتائج ومستويات الممتحنين الفعليين بالصفوف</p>
+                </div>
+                <button type="button" onclick="exportTableToCsv('examsTable', 'تقرير_احصائيات_الامتحانات')" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition border-none cursor-pointer flex items-center gap-2">
+                    📥 تصدير إكسيل
+                </button>
             </div>
             <div class="overflow-x-auto">
-                <table class="w-full text-right border-collapse">
+                <table id="examsTable" class="w-full text-right border-collapse">
                     <thead>
                         <tr class="bg-gray-50 border-b dark:bg-gray-700/50 dark:border-gray-700">
                             <th class="px-6 py-4 text-sm font-bold text-gray-600 dark:text-gray-300">اسم الفصل</th>
@@ -140,12 +151,17 @@
 
         {{-- Class Comparison Table --}}
         <div class="bg-white rounded-3xl border shadow-sm dark:bg-gray-800 dark:border-gray-700 overflow-hidden mt-8">
-            <div class="px-6 py-5 border-b dark:border-gray-700">
-                <h3 class="text-lg font-black text-gray-800 dark:text-white">📊 مقارنة أداء الفصول والمراحل (للمخدومين النشطين)</h3>
-                <p class="text-xs text-gray-400 mt-1">مقارنة شاملة لمعدلات التحصيل بناءً على المخدومين النشطين فقط</p>
+            <div class="px-6 py-5 border-b dark:border-gray-700 flex justify-between items-center">
+                <div>
+                    <h3 class="text-lg font-black text-gray-800 dark:text-white">📊 مقارنة أداء الفصول والمراحل (للمخدومين النشطين)</h3>
+                    <p class="text-xs text-gray-400 mt-1">مقارنة شاملة لمعدلات التحصيل بناءً على المخدومين النشطين فقط</p>
+                </div>
+                <button type="button" onclick="exportTableToCsv('comparisonTable', 'مقارنة_اداء_الفصول')" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition border-none cursor-pointer flex items-center gap-2">
+                    📥 تصدير إكسيل
+                </button>
             </div>
             <div class="overflow-x-auto">
-                <table class="w-full text-right border-collapse">
+                <table id="comparisonTable" class="w-full text-right border-collapse">
                     <thead>
                         <tr class="bg-gray-50 border-b dark:bg-gray-700/50 dark:border-gray-700">
                             <th class="px-6 py-4 text-sm font-bold text-gray-600 dark:text-gray-300">اسم الفصل</th>
@@ -173,6 +189,7 @@
                 </table>
             </div>
         </div>
+        @endif
 
         {{-- Alerts Section --}}
         @php
@@ -190,10 +207,17 @@
         @endphp
         <div class="bg-white rounded-3xl border shadow-sm dark:bg-gray-800 dark:border-gray-700 overflow-hidden mt-8"
              x-data="{ activeAlertTab: '{{ $initialTab }}' }">
-            <div class="px-6 py-5 border-b dark:border-gray-700">
-                <h3 class="text-lg font-black text-gray-800 dark:text-white">🔔 تنبيهات المتابعة والدعم (للمخدومين النشطين)</h3>
-                <p class="text-xs text-gray-400 mt-1">تنبيهات فورية لم مستوى المخدومين وسلوكهم مقسمة بالفصول</p>
-                
+            <div class="px-6 py-5 border-b dark:border-gray-700 flex justify-between items-center flex-wrap gap-4">
+                <div>
+                    <h3 class="text-lg font-black text-gray-800 dark:text-white">🔔 تنبيهات المتابعة والدعم (للمخدومين النشطين)</h3>
+                    <p class="text-xs text-gray-400 mt-1">تنبيهات فورية لمستوى المخدومين وسلوكهم مقسمة بالفصول</p>
+                </div>
+                <button type="button" onclick="exportAlerts()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition border-none cursor-pointer flex items-center gap-2">
+                    📥 تصدير إكسيل
+                </button>
+            </div>
+            
+            <div class="px-6 py-4 border-b dark:border-gray-700">
                 @if(count($allClassNames) > 0)
                     {{-- Alert Tabs Navigation --}}
                     <div class="flex flex-wrap gap-1.5 mt-4">
@@ -248,123 +272,190 @@
             </div>
         </div>
 
-        {{-- ChartJS scripts --}}
-        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        {{-- Export script & ChartJS scripts --}}
         <script>
-            document.addEventListener('DOMContentLoaded', function () {
-                const attendanceData = @json($attendanceStats);
-                const examData = @json($examStats);
-
-                const labels = attendanceData.map(item => item.name);
-                const isDark = document.documentElement.classList.contains('dark');
-                const textColor = isDark ? '#9ca3af' : '#4b5563';
-                const gridColor = isDark ? 'rgba(75, 85, 99, 0.2)' : 'rgba(229, 231, 235, 0.5)';
-
-                // Chart 1: Attendance Rates
-                new Chart(document.getElementById('attendanceChart'), {
-                    type: 'bar',
-                    data: {
-                        labels: labels,
-                        datasets: [
-                            {
-                                label: 'نسبة الحضور الإجمالي (%)',
-                                data: attendanceData.map(item => item.rate_total),
-                                backgroundColor: 'rgba(59, 130, 246, 0.6)',
-                                borderColor: 'rgb(59, 130, 246)',
-                                borderWidth: 1
-                            },
-                            {
-                                label: 'نسبة الحضور من النشطين (%)',
-                                data: attendanceData.map(item => item.rate_active),
-                                backgroundColor: 'rgba(16, 185, 129, 0.6)',
-                                borderColor: 'rgb(16, 185, 129)',
-                                borderWidth: 1
-                            }
-                        ]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: {
-                                position: 'bottom',
-                                labels: {
-                                    color: textColor,
-                                    font: { family: 'Tajawal, sans-serif', size: 11 }
-                                }
-                            }
-                        },
-                        scales: {
-                            y: {
-                                beginAtZero: true,
-                                max: 100,
-                                grid: { color: gridColor },
-                                ticks: { color: textColor }
-                            },
-                            x: {
-                                grid: { display: false },
-                                ticks: { color: textColor }
-                            }
-                        }
+            function exportTableToCsv(tableId, filename) {
+                const table = document.getElementById(tableId);
+                if (!table) return;
+                
+                let csv = [];
+                const rows = table.querySelectorAll("tr");
+                
+                for (let i = 0; i < rows.length; i++) {
+                    const row = [], cols = rows[i].querySelectorAll("td, th");
+                    
+                    for (let j = 0; j < cols.length; j++) {
+                        let data = cols[j].innerText.trim();
+                        data = data.replace(/"/g, '""');
+                        row.push('"' + data + '"');
                     }
-                });
+                    
+                    csv.push(row.join(","));
+                }
+                
+                const csvContent = "\uFEFF" + csv.join("\n");
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement("a");
+                link.setAttribute("href", url);
+                link.setAttribute("download", filename + ".csv");
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }
 
-                // Chart 2: Exam Grade Distribution
-                new Chart(document.getElementById('examsChart'), {
-                    type: 'bar',
-                    data: {
-                        labels: labels,
-                        datasets: [
-                            {
-                                label: 'فوق 75% (%)',
-                                data: examData.map(item => item.above_75_pct),
-                                backgroundColor: 'rgba(16, 185, 129, 0.6)',
-                                borderColor: 'rgb(16, 185, 129)',
-                                borderWidth: 1
-                            },
-                            {
-                                label: 'أعلى من 50% (%)',
-                                data: examData.map(item => item.above_50_pct),
-                                backgroundColor: 'rgba(245, 158, 11, 0.6)',
-                                borderColor: 'rgb(245, 158, 11)',
-                                borderWidth: 1
-                            },
-                            {
-                                label: 'راسبين أقل من 50% (%)',
-                                data: examData.map(item => item.below_50_pct),
-                                backgroundColor: 'rgba(239, 68, 68, 0.6)',
-                                borderColor: 'rgb(239, 68, 68)',
-                                borderWidth: 1
-                            }
-                        ]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: {
-                                position: 'bottom',
-                                labels: {
-                                    color: textColor,
-                                    font: { family: 'Tajawal, sans-serif', size: 11 }
-                                }
-                            }
-                        },
-                        scales: {
-                            y: {
-                                beginAtZero: true,
-                                max: 100,
-                                grid: { color: gridColor },
-                                ticks: { color: textColor }
-                            },
-                            x: {
-                                grid: { display: false },
-                                ticks: { color: textColor }
-                            }
-                        }
+            function exportAlerts() {
+                const alertsData = @json($alerts);
+                const assignedClasses = @json($assignedClassNames);
+                const isSuperAdmin = @json($isSuperAdmin);
+                
+                let csv = [];
+                csv.push(["اسم الطالب", "اسم الفصل", "نوع التنبيه", "الوصف", "القيمة"].map(h => '"' + h + '"').join(","));
+                
+                alertsData.forEach(alert => {
+                    if (!isSuperAdmin && !assignedClasses.includes(alert.class_name)) {
+                        return;
                     }
+                    const row = [
+                        alert.student_name,
+                        alert.class_name,
+                        alert.type,
+                        alert.description,
+                        alert.value
+                    ].map(val => '"' + (val || '').toString().replace(/"/g, '""') + '"');
+                    csv.push(row.join(","));
                 });
-            });
+                
+                const csvContent = "\uFEFF" + csv.join("\n");
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement("a");
+                link.setAttribute("href", url);
+                link.setAttribute("download", "تنبيهات_المتابعة_والدعم.csv");
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }
         </script>
+
+        @if(auth()->user()?->hasRole('super_admin'))
+            <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+            <script>
+                document.addEventListener('DOMContentLoaded', function () {
+                    const attendanceData = @json($attendanceStats);
+                    const examData = @json($examStats);
+
+                    const labels = attendanceData.map(item => item.name);
+                    const isDark = document.documentElement.classList.contains('dark');
+                    const textColor = isDark ? '#9ca3af' : '#4b5563';
+                    const gridColor = isDark ? 'rgba(75, 85, 99, 0.2)' : 'rgba(229, 231, 235, 0.5)';
+
+                    // Chart 1: Attendance Rates
+                    new Chart(document.getElementById('attendanceChart'), {
+                        type: 'bar',
+                        data: {
+                            labels: labels,
+                            datasets: [
+                                {
+                                    label: 'نسبة الحضور الإجمالي (%)',
+                                    data: attendanceData.map(item => item.rate_total),
+                                    backgroundColor: 'rgba(59, 130, 246, 0.6)',
+                                    borderColor: 'rgb(59, 130, 246)',
+                                    borderWidth: 1
+                                },
+                                {
+                                    label: 'نسبة الحضور من النشطين (%)',
+                                    data: attendanceData.map(item => item.rate_active),
+                                    backgroundColor: 'rgba(16, 185, 129, 0.6)',
+                                    borderColor: 'rgb(16, 185, 129)',
+                                    borderWidth: 1
+                                }
+                            ]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    position: 'bottom',
+                                    labels: {
+                                        color: textColor,
+                                        font: { family: 'Tajawal, sans-serif', size: 11 }
+                                    }
+                                }
+                            },
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    max: 100,
+                                    grid: { color: gridColor },
+                                    ticks: { color: textColor }
+                                },
+                                x: {
+                                    grid: { display: false },
+                                    ticks: { color: textColor }
+                                }
+                            }
+                        }
+                    });
+
+                    // Chart 2: Exam Grade Distribution
+                    new Chart(document.getElementById('examsChart'), {
+                        type: 'bar',
+                        data: {
+                            labels: labels,
+                            datasets: [
+                                {
+                                    label: 'فوق 75% (%)',
+                                    data: examData.map(item => item.above_75_pct),
+                                    backgroundColor: 'rgba(16, 185, 129, 0.6)',
+                                    borderColor: 'rgb(16, 185, 129)',
+                                    borderWidth: 1
+                                },
+                                {
+                                    label: 'أعلى من 50% (%)',
+                                    data: examData.map(item => item.above_50_pct),
+                                    backgroundColor: 'rgba(245, 158, 11, 0.6)',
+                                    borderColor: 'rgb(245, 158, 11)',
+                                    borderWidth: 1
+                                },
+                                {
+                                    label: 'راسبين أقل من 50% (%)',
+                                    data: examData.map(item => item.below_50_pct),
+                                    backgroundColor: 'rgba(239, 68, 68, 0.6)',
+                                    borderColor: 'rgb(239, 68, 68)',
+                                    borderWidth: 1
+                                }
+                            ]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    position: 'bottom',
+                                    labels: {
+                                        color: textColor,
+                                        font: { family: 'Tajawal, sans-serif', size: 11 }
+                                    }
+                                }
+                            },
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    max: 100,
+                                    grid: { color: gridColor },
+                                    ticks: { color: textColor }
+                                },
+                                x: {
+                                    grid: { display: false },
+                                    ticks: { color: textColor }
+                                }
+                            }
+                        }
+                    });
+                });
+            </script>
+        @endif
     @endif
 </x-filament-panels::page>
