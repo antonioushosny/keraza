@@ -94,7 +94,8 @@ class ExamResource extends Resource
                         $enrollments = \App\Models\StudentSeasonEnrollment::where('class_id', $state)
                             ->where('season_id', $activeSeasonId)
                             ->with('student')
-                            ->get();
+                            ->get()
+                            ->sortBy(fn ($e) => $e->student?->full_name);
 
                         $scores = $enrollments->map(fn ($enrollment) => [
                             'student_season_enrollment_id' => $enrollment->id,
@@ -231,7 +232,8 @@ class ExamResource extends Resource
                         $enrollments = \App\Models\StudentSeasonEnrollment::where('class_id', $record->class_id)
                             ->where('season_id', $activeSeason->id)
                             ->with('student')
-                            ->get();
+                            ->get()
+                            ->sortBy(fn ($e) => $e->student?->full_name);
 
                         $headers = [
                             'student_code' => 'كود المخدوم',

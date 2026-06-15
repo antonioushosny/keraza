@@ -12,6 +12,10 @@ class Student extends Model
 
     protected static function booted()
     {
+        static::addGlobalScope('alphabetical', function ($builder) {
+            $builder->orderBy('full_name', 'asc');
+        });
+
         static::creating(function ($student) {
             if (!$student->code) {
                 $maxCode = static::max('code');

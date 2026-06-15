@@ -133,7 +133,8 @@ class StudentResource extends Resource
                     ->circular(),
                 Tables\Columns\TextColumn::make('full_name')
                     ->label('الاسم')
-                    ->searchable(),
+                    ->searchable()
+                    ->sortable(),
                 Tables\Columns\TextColumn::make('gender')
                     ->label('الجنس')
                     ->formatStateUsing(fn (string $state): string => $state === 'male' ? 'ذكر' : 'أنثى'),
@@ -141,6 +142,7 @@ class StudentResource extends Resource
                     ->label('تاريخ الميلاد')
                     ->date(),
             ])
+            ->defaultSort('full_name', 'asc')
             ->filters([
                 Tables\Filters\SelectFilter::make('class')
                     ->label('الفصل')

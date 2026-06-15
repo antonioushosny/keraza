@@ -100,7 +100,28 @@ class MemorizationScoreResource extends Resource
             ])
             ->defaultSort('created_at', 'desc')
             ->filters([
-                Tables\Filters\SelectFilter::make('memorizationItem')->relationship('memorizationItem', 'title')->label('البند'),
+                Tables\Filters\SelectFilter::make('memorization_item_id')
+                    ->label('البند')
+                    ->options(function () {
+                        $activeSeason = \App\Models\Season::active();
+                        $query = \App\Models\MemorizationItem::query();
+                        if ($activeSeason) {
+                            $query->where('season_id', $activeSeason->id);
+                        }
+                        
+                        $isSuperAdmin = auth()->user()?->hasRole('super_admin');
+                        if (!$isSuperAdmin) {
+                            $query->whereIn('class_id', auth()->user()->assignedClasses->pluck('id'));
+                        }
+                        
+                        return $query->with('class')->get()->mapWithKeys(function ($item) use ($isSuperAdmin) {
+                            $label = $item->title;
+                            if ($isSuperAdmin && $item->class) {
+                                $label .= ' - ' . $item->class->name;
+                            }
+                            return [$item->id => $label];
+                        })->toArray();
+                    }),
                 Tables\Filters\SelectFilter::make('class_id')
                     ->label('الفصل')
                     ->options(\App\Models\KerazaClass::pluck('name', 'id'))

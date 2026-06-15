@@ -87,7 +87,8 @@ class AttendanceSessionResource extends Resource
                                 $enrollments = \App\Models\StudentSeasonEnrollment::where('class_id', $state)
                                     ->where('season_id', $activeSeasonId)
                                     ->with('student')
-                                    ->get();
+                                    ->get()
+                                    ->sortBy(fn ($e) => $e->student?->full_name);
 
                                 $attendances = $enrollments->map(fn ($enrollment) => [
                                     'student_season_enrollment_id' => $enrollment->id,
@@ -100,7 +101,32 @@ class AttendanceSessionResource extends Resource
                         Forms\Components\DatePicker::make('date')
                             ->label('التاريخ')
                             ->required()
-                            ->default(now()),
+                            ->default(now())
+                            ->rules([
+                                function ($get, $record) {
+                                    return function (string $attribute, $value, \Closure $fail) use ($get, $record) {
+                                        $classId = $get('class_id');
+                                        if (!$classId) {
+                                            return;
+                                        }
+                                        $activeSeason = \App\Models\Season::active();
+                                        if (!$activeSeason) {
+                                            return;
+                                        }
+                                        $query = \App\Models\AttendanceSession::where('class_id', $classId)
+                                            ->whereDate('date', $value)
+                                            ->where('season_id', $activeSeason->id);
+                                        
+                                        if ($record) {
+                                            $query->where('id', '!=', $record->id);
+                                        }
+
+                                        if ($query->exists()) {
+                                            $fail('تم تسجيل غياب وحضور لهذا الفصل في نفس اليوم بالفعل.');
+                                        }
+                                    };
+                                }
+                            ]),
                         Forms\Components\Textarea::make('notes')
                             ->label('ملاحظات')
                             ->columnSpanFull(),
@@ -259,7 +285,8 @@ class AttendanceSessionResource extends Resource
                         $enrollments = \App\Models\StudentSeasonEnrollment::where('class_id', $classId)
                             ->where('season_id', $activeSeason->id)
                             ->with('student')
-                            ->get();
+                            ->get()
+                            ->sortBy(fn ($e) => $e->student?->full_name);
 
                         $session = \App\Models\AttendanceSession::where('class_id', $classId)
                             ->where('date', $date)

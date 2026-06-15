@@ -74,7 +74,8 @@ class MemorizationItemResource extends Resource
                         $enrollments = \App\Models\StudentSeasonEnrollment::where('class_id', $state)
                             ->where('season_id', $activeSeasonId)
                             ->with('student')
-                            ->get();
+                            ->get()
+                            ->sortBy(fn ($e) => $e->student?->full_name);
 
                         $scores = $enrollments->map(fn ($enrollment) => [
                             'student_season_enrollment_id' => $enrollment->id,
@@ -171,7 +172,10 @@ class MemorizationItemResource extends Resource
                 Tables\Columns\TextColumn::make('max_points')->label('الدرجة القصوى'),
             ])
             ->filters([
-                Tables\Filters\SelectFilter::make('class')->relationship('class', 'name')->label('المرحلة'),
+                Tables\Filters\SelectFilter::make('class')
+                    ->relationship('class', 'name')
+                    ->label('المرحلة')
+                    ->visible(fn () => auth()->user()?->hasRole('super_admin')),
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
@@ -187,7 +191,8 @@ class MemorizationItemResource extends Resource
                         $enrollments = \App\Models\StudentSeasonEnrollment::where('class_id', $record->class_id)
                             ->where('season_id', $activeSeason->id)
                             ->with('student')
-                            ->get();
+                            ->get()
+                            ->sortBy(fn ($e) => $e->student?->full_name);
 
                         $headers = [
                             'student_code' => 'كود المخدوم',
