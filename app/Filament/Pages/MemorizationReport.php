@@ -118,7 +118,7 @@ class MemorizationReport extends Page
                 'scores' => $studentScores,
                 'total_score' => $totalScore,
                 'total_percentage' => $overallPercentage,
-                'has_scores' => $hasScores,
+                'has_scores' => $totalScore > 0,
             ];
         }
 

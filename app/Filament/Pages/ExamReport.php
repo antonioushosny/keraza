@@ -122,7 +122,7 @@ class ExamReport extends Page
                 'total_score' => $totalScore,
                 'total_max_score' => $totalMaxScore,
                 'total_percentage' => $overallPercentage,
-                'has_scores' => $hasScores,
+                'has_scores' => $totalScore > 0,
             ];
         }
 

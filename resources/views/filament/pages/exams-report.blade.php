@@ -57,7 +57,7 @@
                 </div>
             </div>
             <div class="fi-section rounded-xl bg-white shadow-sm ring-1 ring-gray-950/5 dark:bg-gray-900 dark:ring-white/10 p-4 flex items-center gap-4">
-                <div class="w-12 h-12 rounded-xl flex items-center justify-center text-xl bg-emerald-50 dark:bg-emerald-950/30 text-emerald-500">✔️</div>
+                <div class="w-12 h-12 rounded-xl flex items-center justify-center text-xl bg-amber-50 dark:bg-amber-950/30 text-amber-500">✔️</div>
                 <div>
                     <div class="text-xs text-gray-500 dark:text-gray-400">الذين أدوا الامتحانات</div>
                     <div class="text-lg font-black text-gray-950 dark:text-white">{{ collect($reportData)->where('has_scores', true)->count() }}</div>
