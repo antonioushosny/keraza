@@ -40,15 +40,13 @@ class ActivityReport extends Page
             
             // Fetch activities
             $activitiesQuery = Activity::where('season_id', $activeSeason->id);
-            if (!$user->hasRole('super_admin') && !$user->hasRole('class_admin')) {
-                if ($user->hasRole('activity_admin')) {
-                    $activitiesQuery->whereIn('id', $user->assignedActivities->pluck('id'));
-                }
+            if (!$user->hasRole('super_admin') && $user->hasRole('activity_admin')) {
+                $activitiesQuery->whereIn('id', $user->assignedActivities->pluck('id'));
             }
             $this->activities = $activitiesQuery->orderBy('title')->get()->map(fn($a) => ['id' => $a->id, 'title' => $a->title])->toArray();
         }
 
-        if ($user->hasRole('super_admin')) {
+        if ($user->hasRole('super_admin') || $user->hasRole('activity_admin')) {
             $this->classes = KerazaClass::orderBy('level')->get()->map(fn($c) => ['id' => $c->id, 'name' => $c->name])->toArray();
         } else {
             $this->classes = $user->assignedClasses->map(fn($c) => ['id' => $c->id, 'name' => $c->name])->toArray();

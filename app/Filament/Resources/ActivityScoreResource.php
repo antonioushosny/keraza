@@ -23,7 +23,7 @@ class ActivityScoreResource extends Resource
 
     public static function canViewAny(): bool
     {
-        return auth()->user()?->hasAnyRole(['super_admin', 'class_admin', 'class_servant', 'activity_admin']) ?? false;
+        return auth()->user()?->hasAnyRole(['super_admin', 'activity_admin']) ?? false;
     }
 
     public static function canCreate(): bool
