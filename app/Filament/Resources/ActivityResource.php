@@ -23,9 +23,9 @@ class ActivityResource extends Resource
 
     protected static ?string $pluralModelLabel = 'الأنشطة';
 
-    protected static ?string $navigationGroup = 'الحضور والأنشطة';
+    protected static ?string $navigationGroup = 'الأنشطة';
 
-    protected static ?int $navigationSort = 3;
+    protected static ?int $navigationSort = 5;
 
     public static function canViewAny(): bool
     {
@@ -34,6 +34,15 @@ class ActivityResource extends Resource
 
     public static function form(Form $form): Form
     {
+        $weightRule = function ($get) {
+            return function (string $attribute, $value, \Closure $fail) use ($get) {
+                $total = intval($get('weight_attendance') ?? 0) + intval($get('weight_tasks') ?? 0) + intval($get('weight_evaluation') ?? 0);
+                if ($total !== 100) {
+                    $fail('مجموع أوزان الدرجات يجب أن يساوي 100% حالياً المجموع هو ' . $total . '%');
+                }
+            };
+        };
+
         return $form
             ->schema([
                 Forms\Components\TextInput::make('title')
@@ -56,6 +65,30 @@ class ActivityResource extends Resource
                     ->label('الحد الأدنى للتأهل')
                     ->numeric()
                     ->required(),
+                Forms\Components\Section::make('أوزان درجات النشاط')
+                    ->schema([
+                        Forms\Components\TextInput::make('weight_attendance')
+                            ->label('وزن نسبة الحضور (%)')
+                            ->numeric()
+                            ->default(20)
+                            ->required()
+                            ->rules([$weightRule])
+                            ->live(),
+                        Forms\Components\TextInput::make('weight_tasks')
+                            ->label('وزن نسبة المهام (%)')
+                            ->numeric()
+                            ->default(30)
+                            ->required()
+                            ->rules([$weightRule])
+                            ->live(),
+                        Forms\Components\TextInput::make('weight_evaluation')
+                            ->label('وزن نسبة التقييم النهائي (%)')
+                            ->numeric()
+                            ->default(50)
+                            ->required()
+                            ->rules([$weightRule])
+                            ->live(),
+                    ])->columns(3),
             ]);
     }
 

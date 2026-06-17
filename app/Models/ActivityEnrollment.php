@@ -24,4 +24,14 @@ class ActivityEnrollment extends Model
     {
         return $this->hasMany(ActivityScore::class);
     }
+
+    public function attendances(): HasMany
+    {
+        return $this->hasMany(ActivityAttendance::class, 'activity_enrollment_id');
+    }
+
+    public function taskScores(): HasMany
+    {
+        return $this->hasMany(ActivityTaskScore::class, 'activity_enrollment_id');
+    }
 }

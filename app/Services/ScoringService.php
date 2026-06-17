@@ -79,16 +79,12 @@ class ScoringService
         }
         
         $activityScore = 0;
-        if ($enrollment->relationLoaded('activityEnrollments')) {
-            $activityScore = $enrollment->activityEnrollments
-                ->flatMap(fn($e) => $e->relationLoaded('scores') ? $e->scores : $e->scores()->get())
-                ->avg('score') ?? 0;
-        } else {
-            $activityScore = $enrollment->activityEnrollments()
-                ->with('scores')
-                ->get()
-                ->flatMap(fn($e) => $e->scores)
-                ->avg('score') ?? 0;
+        $enrollmentActivities = $enrollment->activityEnrollments;
+        if ($enrollmentActivities->isNotEmpty()) {
+            $activityScoresList = $enrollmentActivities->map(function ($ae) {
+                return $this->calculateActivityEnrollmentScore($ae)['final'];
+            });
+            $activityScore = $activityScoresList->average() ?? 0;
         }
 
         $behaviorPoints = $enrollment->relationLoaded('behaviorLogs')
@@ -133,11 +129,64 @@ class ScoringService
         ];
     }
 
+    public function calculateActivityEnrollmentScore($ae): array
+    {
+        $activity = $ae->activity ?? \App\Models\Activity::find($ae->activity_id);
+        if (!$activity) {
+            return [
+                'attendance' => 0,
+                'tasks' => 0,
+                'evaluation' => 0,
+                'final' => 0,
+            ];
+        }
+
+        // 1. Attendance Score
+        $totalSessions = \App\Models\ActivityAttendanceSession::where('activity_id', $ae->activity_id)->count();
+        if ($totalSessions > 0) {
+            $present = \App\Models\ActivityAttendance::where('activity_enrollment_id', $ae->id)
+                ->where('status', 'present')
+                ->count();
+            $excused = \App\Models\ActivityAttendance::where('activity_enrollment_id', $ae->id)
+                ->where('status', 'excused')
+                ->count();
+            $attScore = (($present + ($excused * 0.5)) / $totalSessions) * 100;
+        } else {
+            $attScore = 0;
+        }
+
+        // 2. Tasks Score
+        $totalMaxScore = \App\Models\ActivityTask::where('activity_id', $ae->activity_id)->sum('max_score');
+        if ($totalMaxScore > 0) {
+            $studentTaskSum = \App\Models\ActivityTaskScore::where('activity_enrollment_id', $ae->id)->sum('score');
+            $tasksScore = ($studentTaskSum / $totalMaxScore) * 100;
+        } else {
+            $tasksScore = 0;
+        }
+
+        // 3. Evaluation Score
+        $evalScore = \App\Models\ActivityScore::where('activity_enrollment_id', $ae->id)->avg('score') ?? 0;
+
+        // 4. Final Weighted Score
+        $wAttendance = $activity->weight_attendance ?? 20;
+        $wTasks = $activity->weight_tasks ?? 30;
+        $wEvaluation = $activity->weight_evaluation ?? 50;
+
+        $final = ($attScore * ($wAttendance / 100)) + ($tasksScore * ($wTasks / 100)) + ($evalScore * ($wEvaluation / 100));
+
+        return [
+            'attendance' => round($attScore, 2),
+            'tasks' => round($tasksScore, 2),
+            'evaluation' => round($evalScore, 2),
+            'final' => round($final, 2),
+        ];
+    }
+
     public function getRankings(int $seasonId, int $classId = null): Collection
     {
         $enrollments = StudentSeasonEnrollment::where('season_id', $seasonId)
             ->when($classId, fn($q) => $q->where('class_id', $classId))
-            ->with(['attendance', 'examScores.exam', 'memorizationScores.memorizationItem', 'activityEnrollments.scores', 'behaviorLogs', 'student'])
+            ->with(['attendance', 'examScores.exam', 'memorizationScores.memorizationItem', 'activityEnrollments.scores', 'activityEnrollments.activity', 'behaviorLogs', 'student'])
             ->get();
 
         return $enrollments->map(function ($enrollment) {
@@ -163,6 +212,7 @@ class ScoringService
                 'examScores.exam', 
                 'memorizationScores.memorizationItem',  
                 'activityEnrollments.scores', 
+                'activityEnrollments.activity',
                 'behaviorLogs'
             ])
             ->get();

@@ -16,10 +16,10 @@ class ActivityScoreResource extends Resource
 {
     protected static ?string $model = ActivityScore::class;
     protected static ?string $navigationIcon = 'heroicon-o-star';
-    protected static ?string $modelLabel = 'تقييم نشاط';
-    protected static ?string $pluralModelLabel = 'تقييمات الأنشطة';
-    protected static ?string $navigationGroup = 'الحضور والأنشطة';
-    protected static ?int $navigationSort = 6;
+    protected static ?string $modelLabel = 'تقييم نشاط نهائي';
+    protected static ?string $pluralModelLabel = 'التقييمات النهائية للأنشطة';
+    protected static ?string $navigationGroup = 'الأنشطة';
+    protected static ?int $navigationSort = 3;
 
     public static function canViewAny(): bool
     {

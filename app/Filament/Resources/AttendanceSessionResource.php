@@ -24,7 +24,7 @@ class AttendanceSessionResource extends Resource
 
     protected static ?string $pluralModelLabel = 'أيام الحضور';
 
-    protected static ?string $navigationGroup = 'الحضور والأنشطة';
+    protected static ?string $navigationGroup = 'الحضور';
 
     protected static ?int $navigationSort = 1;
 

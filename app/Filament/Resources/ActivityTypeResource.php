@@ -23,9 +23,9 @@ class ActivityTypeResource extends Resource
 
     protected static ?string $pluralModelLabel = 'أنواع الأنشطة';
 
-    protected static ?string $navigationGroup = 'الحضور والأنشطة';
+    protected static ?string $navigationGroup = 'الأنشطة';
 
-    protected static ?int $navigationSort = 4;
+    protected static ?int $navigationSort = 6;
 
     public static function canViewAny(): bool
     {

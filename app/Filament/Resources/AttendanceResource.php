@@ -24,7 +24,7 @@ class AttendanceResource extends Resource
 
     protected static bool $shouldRegisterNavigation = true;
 
-    protected static ?string $navigationGroup = 'الحضور والأنشطة';
+    protected static ?string $navigationGroup = 'الحضور';
 
     protected static ?int $navigationSort = 2;
 

@@ -24,9 +24,9 @@ class ActivityEnrollmentResource extends Resource
 
     protected static ?string $pluralModelLabel = 'تسجيلات الأنشطة';
 
-    protected static ?string $navigationGroup = 'الحضور والأنشطة';
+    protected static ?string $navigationGroup = 'الأنشطة';
 
-    protected static ?int $navigationSort = 5;
+    protected static ?int $navigationSort = 4;
 
     public static function canViewAny(): bool
     {

@@ -8,7 +8,15 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Activity extends Model
 {
-    protected $fillable = ['type_id', 'season_id', 'title', 'min_score_to_qualify'];
+    protected $fillable = [
+        'type_id', 
+        'season_id', 
+        'title', 
+        'min_score_to_qualify',
+        'weight_attendance',
+        'weight_tasks',
+        'weight_evaluation'
+    ];
 
     public function type(): BelongsTo
     {
@@ -28,5 +36,15 @@ class Activity extends Model
     public function supervisors(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
     {
         return $this->belongsToMany(User::class, 'activity_supervisor', 'activity_id', 'user_id');
+    }
+
+    public function tasks(): HasMany
+    {
+        return $this->hasMany(ActivityTask::class);
+    }
+
+    public function attendanceSessions(): HasMany
+    {
+        return $this->hasMany(ActivityAttendanceSession::class);
     }
 }
