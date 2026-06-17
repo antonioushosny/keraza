@@ -219,6 +219,7 @@ class ExamResource extends Resource
                     ->preload()
                     ->visible(fn () => auth()->user()?->hasRole('super_admin') ?? false),
             ])
+            ->defaultSort('date', 'desc')
             ->actions([
                 Tables\Actions\EditAction::make(),
                 
