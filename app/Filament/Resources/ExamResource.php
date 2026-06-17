@@ -149,6 +149,7 @@ class ExamResource extends Resource
                                 Forms\Components\Grid::make(12)
                                     ->schema([
                                         Forms\Components\Hidden::make('student_season_enrollment_id'),
+                                        Forms\Components\Hidden::make('student_name'),
                                         Forms\Components\Placeholder::make('student_name')
                                             ->hiddenLabel()
                                             ->content(function ($record, $get) {
@@ -308,6 +309,12 @@ class ExamResource extends Resource
                             if (count($row) < 3) continue;
 
                             $studentCode = trim($row[0]);
+                            if (str_ends_with($studentCode, '.0')) {
+                                $studentCode = substr($studentCode, 0, -2);
+                            }
+                            if (is_numeric($studentCode)) {
+                                $studentCode = strval(intval($studentCode));
+                            }
                             $score = floatval(trim($row[2]));
 
                             $student = \App\Models\Student::where('code', $studentCode)->first();

@@ -39,9 +39,10 @@ class AttendanceSyncService
 
         // Create a missing attendance record for each enrollment.
         foreach ($missingIds as $enrollmentId) {
-            Attendance::create([
+            Attendance::firstOrCreate([
                 'attendance_session_id' => $session->id,
                 'student_season_enrollment_id' => $enrollmentId,
+            ], [
                 'status' => 'absent',
             ]);
         }

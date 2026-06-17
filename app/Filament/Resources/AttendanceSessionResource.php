@@ -167,6 +167,7 @@ class AttendanceSessionResource extends Resource
                                 Forms\Components\Grid::make(12)
                                     ->schema([
                                         Forms\Components\Hidden::make('student_season_enrollment_id'),
+                                        Forms\Components\Hidden::make('student_name'),
                                         Forms\Components\Placeholder::make('student_name')
                                             ->hiddenLabel()
                                             ->content(function ($record, $get) {
@@ -378,6 +379,12 @@ class AttendanceSessionResource extends Resource
                                 if (count($row) < 4) continue;
 
                                 $studentCode = trim($row[0]);
+                                if (str_ends_with($studentCode, '.0')) {
+                                    $studentCode = substr($studentCode, 0, -2);
+                                }
+                                if (is_numeric($studentCode)) {
+                                    $studentCode = strval(intval($studentCode));
+                                }
                                 $dateStr = trim($row[2]);
                                 $status = trim($row[3]);
 
