@@ -46,7 +46,7 @@ class ActivityEnrollmentResource extends Resource
                                 $sq->where('full_name', 'like', "%{$search}%");
                             });
 
-                        if (!auth()->user()->hasRole('super_admin')) {
+                        if (!auth()->user()->hasAnyRole(['super_admin', 'activity_admin'])) {
                             $query->whereIn('class_id', auth()->user()->assignedClasses->pluck('id'));
                         }
 
