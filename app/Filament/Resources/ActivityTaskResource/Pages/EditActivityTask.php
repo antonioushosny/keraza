@@ -22,7 +22,7 @@ class EditActivityTask extends EditRecord
         $task = $this->record;
         
         $enrollmentIds = \App\Models\ActivityEnrollment::where('activity_id', $task->activity_id)
-            ->where('status', 'qualified')
+            // ->where('status', 'qualified')
             ->pluck('id')
             ->toArray();
 

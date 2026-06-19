@@ -23,7 +23,7 @@ class EditActivityAttendanceSession extends EditRecord
         
         // Get all qualified enrollments for the activity
         $enrollmentIds = \App\Models\ActivityEnrollment::where('activity_id', $session->activity_id)
-            ->where('status', 'qualified')
+            // ->where('status', 'qualified')
             ->pluck('id')
             ->toArray();
 

@@ -79,7 +79,7 @@ class ActivityTaskResource extends Resource
                                 if (!$state) return;
 
                                 $enrollments = ActivityEnrollment::where('activity_id', $state)
-                                    ->where('status', 'qualified')
+                                    // ->where('status', 'qualified')
                                     ->with('enrollment.student')
                                     ->get()
                                     ->sortBy(fn ($e) => $e->enrollment?->student?->full_name ?? '');

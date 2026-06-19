@@ -97,6 +97,7 @@ class ActivityEnrollmentResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('enrollment.student.full_name')->label('المخدوم')->searchable(),
+                Tables\Columns\TextColumn::make('enrollment.class.name')->label('الفصل'),
                 Tables\Columns\TextColumn::make('activity.title')->label('النشاط'),
                 Tables\Columns\SelectColumn::make('status')
                     ->label('الحالة')
@@ -108,6 +109,22 @@ class ActivityEnrollmentResource extends Resource
             ])
             ->defaultSort('created_at', 'desc')
             ->filters([
+                Tables\Filters\SelectFilter::make('class')
+                    ->label('الفصل')
+                    ->options(function () {
+                        $query = \App\Models\KerazaClass::query();
+                        if (!auth()->user()->hasRole('super_admin')) {
+                            $query->whereIn('id', auth()->user()->assignedClasses->pluck('id'));
+                        }
+                        return $query->pluck('name', 'id')->toArray();
+                    })
+                    ->query(function (Builder $query, array $data) {
+                        if (!empty($data['value'])) {
+                            $query->whereHas('enrollment', function ($q) use ($data) {
+                                $q->where('class_id', $data['value']);
+                            });
+                        }
+                    }),
                 Tables\Filters\SelectFilter::make('activity')->relationship('activity', 'title')->label('النشاط'),
                 Tables\Filters\SelectFilter::make('status')->options([
                     'pending' => 'قيد الانتظار',
