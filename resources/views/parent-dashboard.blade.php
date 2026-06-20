@@ -387,7 +387,7 @@
                                                 <div class="bg-rose-50/40 border border-rose-100/50 p-2.5 rounded-2xl flex items-center gap-2.5 shadow-[0_2px_10px_rgba(244,63,94,0.02)]">
                                                     <span class="text-rose-500 text-sm">⚠️</span>
                                                     <span class="text-xs font-bold text-rose-800/90 leading-relaxed">{{ $log->reason }}</span>
-                                                    <span class="text-xs font-extrabold text-rose-600 mr-auto bg-rose-100/50 px-2 py-0.5 rounded-lg">{{ $log->points }}</span>
+                                                    <span class="text-xs font-extrabold text-rose-600 mr-auto bg-rose-100/50 px-2 py-0.5 rounded-lg">-{{ abs($log->points) }}</span>
                                                 </div>
                                             @endforeach
                                         </div>
@@ -616,7 +616,7 @@
                                                              </div>
                                                          </div>
                                                          <span class="text-xs font-black px-2.5 py-1 rounded-lg" style="background: {{ $logBg }}; color: {{ $logColor }};">
-                                                             {{ $isPos ? '+' : '' }}{{ $log->points }} نقطة
+                                                             {{ $isPos ? '+' : '-' }}{{ abs($log->points) }} نقطة
                                                          </span>
                                                      </div>
                                                  @endforeach

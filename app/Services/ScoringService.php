@@ -87,12 +87,22 @@ class ScoringService
             $activityScore = $activityScoresList->average() ?? 0;
         }
 
-        $behaviorPoints = $enrollment->relationLoaded('behaviorLogs')
-            ? $enrollment->behaviorLogs->sum('points')
-            : $enrollment->behaviorLogs()->sum('points');
+        $behaviorLogs = $enrollment->relationLoaded('behaviorLogs')
+            ? $enrollment->behaviorLogs
+            : $enrollment->behaviorLogs()->get();
 
-        // Cap behavior points between 0 and 100 so it does not exceed its weight (100% of the weight)
-        $behaviorPoints = max(0, min(100, $behaviorPoints));
+        $behaviorPoints = 0;
+        foreach ($behaviorLogs as $log) {
+            $pts = abs($log->points);
+            if ($log->type === 'negative') {
+                $behaviorPoints -= $pts;
+            } else {
+                $behaviorPoints += $pts;
+            }
+        }
+
+        // Cap behavior points at 100 so it does not exceed its weight (100% of the weight)
+        $behaviorPoints = min(100, $behaviorPoints);
 
         // Weighted calculation
         $finalScore = (

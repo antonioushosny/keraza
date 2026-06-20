@@ -362,14 +362,18 @@
                                     </div>
                                     <span class="text-xs font-black px-2.5 py-1 rounded-lg"
                                           style="background: {{ $isPositive ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)' }}; color: {{ $logColor }};">
-                                        {{ $isPositive ? '+' : '' }}{{ $log->points }} نقطة
+                                        {{ $isPositive ? '+' : '-' }}{{ abs($log->points) }} نقطة
                                     </span>
                                 </div>
                             </div>
                         @endforeach
                     </div>
                     <div class="px-6 py-3" style="border-top: 1px solid rgba(156,163,175,0.15); background: rgba(0,0,0,0.02);">
-                        @php $totalBehavior = $enrollment->behaviorLogs->sum('points'); @endphp
+                        @php
+                            $totalBehavior = $enrollment->behaviorLogs->sum(function($log) {
+                                return $log->type === 'negative' ? -abs($log->points) : abs($log->points);
+                            });
+                        @endphp
                         <div class="flex items-center justify-between">
                             <span class="text-xs font-bold text-gray-500 dark:text-gray-400">إجمالي نقاط السلوك</span>
                             <span class="text-sm font-black" style="color: {{ $totalBehavior >= 0 ? '#10b981' : '#ef4444' }};">

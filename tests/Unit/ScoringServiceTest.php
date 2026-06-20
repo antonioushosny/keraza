@@ -136,9 +136,9 @@ class ScoringServiceTest extends TestCase
         $enrollment->behaviorLogs()->delete();
         $enrollment->behaviorLogs()->create(['points' => -50, 'type' => 'negative', 'reason' => 'Bad']);
         $scoreData = $service->calculateScore($enrollment);
-        // Should floor behaviorPoints at 0, so weighted behavior score is 0
-        // Final score: 20 (default attendance 100%) + 0 (behavior) = 20
-        $this->assertEquals(0, $scoreData['breakdown']['behavior']);
-        $this->assertEquals(20, $scoreData['final_score']);
+        // Should allow negative behaviorPoints, so weighted behavior score is -50 * 0.10 = -5
+        // Final score: 20 (default attendance 100%) - 5 (behavior) = 15
+        $this->assertEquals(-50, $scoreData['breakdown']['behavior']);
+        $this->assertEquals(15, $scoreData['final_score']);
     }
 }
