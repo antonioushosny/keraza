@@ -79,17 +79,45 @@
                     <thead>
                         <tr class="bg-gray-50 dark:bg-white/5 border-b border-gray-100 dark:border-white/10">
                             <th class="px-4 py-4 text-xs font-black text-gray-500 dark:text-gray-400 w-16 text-center">الترتيب</th>
-                            <th class="px-4 py-4 text-xs font-black text-gray-500 dark:text-gray-400 min-w-[200px]">المخدوم</th>
+                            <th wire:click="sortBy('name')" class="px-4 py-4 text-xs font-black text-gray-500 dark:text-gray-400 min-w-[200px] cursor-pointer hover:bg-gray-100 dark:hover:bg-white/10 transition-colors">
+                                <div class="flex items-center gap-1">
+                                    <span>المخدوم</span>
+                                    @if($sortField === 'name')
+                                        <span class="text-[10px]">{{ $sortDirection === 'asc' ? '▲' : '▼' }}</span>
+                                    @endif
+                                </div>
+                            </th>
                             
                             @foreach($items as $item)
-                                <th class="px-4 py-4 text-xs font-black text-gray-500 dark:text-gray-400 text-center min-w-[120px]">
-                                    <div>{{ $item['title'] }}</div>
-                                    <div class="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">الدرجة العظمى: {{ $item['total_score'] }}</div>
+                                <th wire:click="sortBy('category_{{ $item['category_id'] }}')" class="px-4 py-4 text-xs font-black text-gray-500 dark:text-gray-400 text-center min-w-[120px] cursor-pointer hover:bg-gray-100 dark:hover:bg-white/10 transition-colors">
+                                    <div class="flex flex-col items-center">
+                                        <div class="flex items-center gap-1 justify-center">
+                                            <span>{{ $item['title'] }}</span>
+                                            @if($sortField === 'category_' . $item['category_id'])
+                                                <span class="text-[10px]">{{ $sortDirection === 'asc' ? '▲' : '▼' }}</span>
+                                            @endif
+                                        </div>
+                                        <div class="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5 font-normal">الدرجة العظمى: {{ $item['total_score'] }}</div>
+                                    </div>
                                 </th>
                             @endforeach
 
-                            <th class="px-4 py-4 text-xs font-black text-gray-500 dark:text-gray-400 text-center min-w-[100px]">إجمالي الدرجات</th>
-                            <th class="px-4 py-4 text-xs font-black text-gray-500 dark:text-gray-400 text-center min-w-[100px]">النسبة الكلية</th>
+                            <th wire:click="sortBy('total_score')" class="px-4 py-4 text-xs font-black text-gray-500 dark:text-gray-400 text-center min-w-[100px] cursor-pointer hover:bg-gray-100 dark:hover:bg-white/10 transition-colors">
+                                <div class="flex items-center gap-1 justify-center">
+                                    <span>إجمالي الدرجات</span>
+                                    @if($sortField === 'total_score')
+                                        <span class="text-[10px]">{{ $sortDirection === 'asc' ? '▲' : '▼' }}</span>
+                                    @endif
+                                </div>
+                            </th>
+                            <th wire:click="sortBy('percentage')" class="px-4 py-4 text-xs font-black text-gray-500 dark:text-gray-400 text-center min-w-[100px] cursor-pointer hover:bg-gray-100 dark:hover:bg-white/10 transition-colors">
+                                <div class="flex items-center gap-1 justify-center">
+                                    <span>النسبة الكلية</span>
+                                    @if($sortField === 'percentage')
+                                        <span class="text-[10px]">{{ $sortDirection === 'asc' ? '▲' : '▼' }}</span>
+                                    @endif
+                                </div>
+                            </th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-100 dark:divide-white/5">

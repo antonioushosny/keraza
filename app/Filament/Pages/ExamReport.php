@@ -27,6 +27,8 @@ class ExamReport extends Page
     public array $reportData = [];
     public array $items = [];
     public ?string $seasonName = null;
+    public string $sortField = 'percentage';
+    public string $sortDirection = 'desc';
 
     public function mount(): void
     {
@@ -49,6 +51,17 @@ class ExamReport extends Page
 
     public function updatedSelectedClassId(): void
     {
+        $this->loadReport();
+    }
+
+    public function sortBy(string $field): void
+    {
+        if ($this->sortField === $field) {
+            $this->sortDirection = $this->sortDirection === 'asc' ? 'desc' : 'asc';
+        } else {
+            $this->sortField = $field;
+            $this->sortDirection = 'desc';
+        }
         $this->loadReport();
     }
 
@@ -75,6 +88,7 @@ class ExamReport extends Page
 
         $this->items = $exams->map(fn($exam) => [
             'id' => $exam->id,
+            'category_id' => $exam->category_id,
             'title' => $exam->title,
             'total_score' => $exam->total_score,
         ])->toArray();
@@ -82,7 +96,7 @@ class ExamReport extends Page
         // Fetch student enrollments with their exam scores
         $enrollments = StudentSeasonEnrollment::where('class_id', $this->selectedClassId)
             ->where('season_id', $activeSeason->id)
-            ->with(['student', 'examScores.exam'])
+            ->with(['student.parent', 'examScores.exam'])
             ->get();
 
         $report = [];
@@ -118,6 +132,8 @@ class ExamReport extends Page
                 'enrollment_id' => $enrollment->id,
                 'student_name' => $enrollment->student->full_name,
                 'profile_image' => $enrollment->student->profile_image,
+                'birth_date' => $enrollment->student->birth_date,
+                'parent_phone' => $enrollment->student->parent?->phone ?? '-',
                 'scores' => $studentScores,
                 'total_score' => $totalScore,
                 'total_max_score' => $totalMaxScore,
@@ -126,13 +142,82 @@ class ExamReport extends Page
             ];
         }
 
-        // Sort by overall average percentage descending, then by name
-        usort($report, function ($a, $b) {
-            if ($b['total_percentage'] === $a['total_percentage']) {
-                return strcmp($a['student_name'], $b['student_name']);
-            }
-            return $b['total_percentage'] <=> $a['total_percentage'];
-        });
+        // Apply sorting
+        if (str_starts_with($this->sortField, 'category_')) {
+            $categoryId = (int) str_replace('category_', '', $this->sortField);
+            // Find exam(s) in this class/season belonging to this category
+            $targetExamIds = Exam::where('class_id', $this->selectedClassId)
+                ->where('season_id', $activeSeason->id)
+                ->where('category_id', $categoryId)
+                ->pluck('id')
+                ->toArray();
+
+            usort($report, function ($a, $b) use ($targetExamIds) {
+                $scoreA = 0;
+                $scoreB = 0;
+                $hasScoreA = false;
+                $hasScoreB = false;
+                foreach ($targetExamIds as $eId) {
+                    if (isset($a['scores'][$eId])) {
+                        $scoreA += $a['scores'][$eId]['score'];
+                        $hasScoreA = true;
+                    }
+                    if (isset($b['scores'][$eId])) {
+                        $scoreB += $b['scores'][$eId]['score'];
+                        $hasScoreB = true;
+                    }
+                }
+                $valA = $hasScoreA ? $scoreA : -1;
+                $valB = $hasScoreB ? $scoreB : -1;
+
+                if ($valA === $valB) {
+                    return strcmp($a['student_name'], $b['student_name']);
+                }
+
+                return $this->sortDirection === 'asc'
+                    ? $valA <=> $valB
+                    : $valB <=> $valA;
+            });
+        } elseif (str_starts_with($this->sortField, 'exam_')) {
+            $examId = (int) str_replace('exam_', '', $this->sortField);
+            usort($report, function ($a, $b) use ($examId) {
+                $scoreA = $a['scores'][$examId]['score'] ?? -1;
+                $scoreB = $b['scores'][$examId]['score'] ?? -1;
+
+                if ($scoreA === $scoreB) {
+                    return strcmp($a['student_name'], $b['student_name']);
+                }
+
+                return $this->sortDirection === 'asc'
+                    ? $scoreA <=> $scoreB
+                    : $scoreB <=> $scoreA;
+            });
+        } elseif ($this->sortField === 'name') {
+            usort($report, function ($a, $b) {
+                return $this->sortDirection === 'asc'
+                    ? strcmp($a['student_name'], $b['student_name'])
+                    : strcmp($b['student_name'], $a['student_name']);
+            });
+        } elseif ($this->sortField === 'total_score') {
+            usort($report, function ($a, $b) {
+                if ($a['total_score'] === $b['total_score']) {
+                    return strcmp($a['student_name'], $b['student_name']);
+                }
+                return $this->sortDirection === 'asc'
+                    ? $a['total_score'] <=> $b['total_score']
+                    : $b['total_score'] <=> $a['total_score'];
+            });
+        } else {
+            // Default to percentage
+            usort($report, function ($a, $b) {
+                if ($b['total_percentage'] === $a['total_percentage']) {
+                    return strcmp($a['student_name'], $b['student_name']);
+                }
+                return $this->sortDirection === 'asc'
+                    ? $a['total_percentage'] <=> $b['total_percentage']
+                    : $b['total_percentage'] <=> $a['total_percentage'];
+            });
+        }
 
         $this->reportData = $report;
     }
@@ -159,7 +244,12 @@ class ExamReport extends Page
             fwrite($file, "\xEF\xBB\xBF");
 
             // Build headers
-            $headers = ['الترتيب', 'المخدوم'];
+            $headers = [
+                'الترتيب',
+                'اسم المخدوم كامل',
+                'رقم جوال ولي الأمر',
+                'تاريخ الميلاد'
+            ];
             foreach ($this->items as $item) {
                 $headers[] = $item['title'] . " (عظمى: " . $item['total_score'] . ")";
             }
@@ -172,13 +262,15 @@ class ExamReport extends Page
             foreach ($this->reportData as $index => $row) {
                 $rowData = [
                     $index + 1,
-                    $row['student_name']
+                    $row['student_name'],
+                    $row['parent_phone'] ?? '-',
+                    $row['birth_date'] ?? '-'
                 ];
 
                 foreach ($this->items as $item) {
                     $scoreData = $row['scores'][$item['id']] ?? null;
                     if ($scoreData) {
-                        $rowData[] = $scoreData['score'] . " (" . $scoreData['percentage'] . "%)";
+                        $rowData[] = $scoreData['score'];
                     } else {
                         $rowData[] = '-';
                     }

@@ -193,4 +193,84 @@ class NewFeaturesTest extends TestCase
         $this->assertTrue($parents->contains('id', $parentA->id));
         $this->assertFalse($parents->contains('id', $parentB->id));
     }
+
+    /** @test */
+    public function exam_report_sorting_and_export_works_properly()
+    {
+        $superAdmin = User::create([
+            'name' => 'Super Admin',
+            'phone' => '01000000000',
+            'password' => bcrypt('password'),
+            'type' => 'admin',
+        ]);
+        $superAdmin->assignRole('super_admin');
+        $this->actingAs($superAdmin, 'admin');
+
+        $parent1 = User::create(['name' => 'Parent One', 'phone' => '01234567891', 'password' => bcrypt('password'), 'type' => 'parent']);
+        $parent2 = User::create(['name' => 'Parent Two', 'phone' => '01234567892', 'password' => bcrypt('password'), 'type' => 'parent']);
+
+        $student1 = Student::create(['full_name' => 'Alice Student', 'gender' => 'female', 'birth_date' => '2015-05-15', 'parent_id' => $parent1->id]);
+        $student2 = Student::create(['full_name' => 'Bob Student', 'gender' => 'male', 'birth_date' => '2016-06-16', 'parent_id' => $parent2->id]);
+
+        $enroll1 = StudentSeasonEnrollment::create(['student_id' => $student1->id, 'season_id' => $this->activeSeason->id, 'class_id' => $this->classA->id]);
+        $enroll2 = StudentSeasonEnrollment::create(['student_id' => $student2->id, 'season_id' => $this->activeSeason->id, 'class_id' => $this->classA->id]);
+
+        $cat1 = \App\Models\ExamCategory::create(['name' => 'دراسات كتابية']);
+        $cat2 = \App\Models\ExamCategory::create(['name' => 'طقس كنسي']);
+
+        $exam1 = \App\Models\Exam::create([
+            'season_id' => $this->activeSeason->id,
+            'class_id' => $this->classA->id,
+            'category_id' => $cat1->id,
+            'title' => 'اختبار دراسات كتابية',
+            'total_score' => 100,
+            'date' => '2026-06-20',
+        ]);
+
+        $exam2 = \App\Models\Exam::create([
+            'season_id' => $this->activeSeason->id,
+            'class_id' => $this->classA->id,
+            'category_id' => $cat2->id,
+            'title' => 'اختبار طقس كنسي',
+            'total_score' => 100,
+            'date' => '2026-06-20',
+        ]);
+
+        // Alice: Written = 100, Rituals = 80
+        \App\Models\ExamScore::create(['student_season_enrollment_id' => $enroll1->id, 'exam_id' => $exam1->id, 'score' => 100]);
+        \App\Models\ExamScore::create(['student_season_enrollment_id' => $enroll1->id, 'exam_id' => $exam2->id, 'score' => 80]);
+
+        // Bob: Written = 90, Rituals = 95
+        \App\Models\ExamScore::create(['student_season_enrollment_id' => $enroll2->id, 'exam_id' => $exam1->id, 'score' => 90]);
+        \App\Models\ExamScore::create(['student_season_enrollment_id' => $enroll2->id, 'exam_id' => $exam2->id, 'score' => 95]);
+
+        $test = \Livewire\Livewire::test(\App\Filament\Pages\ExamReport::class)
+            ->set('selectedClassId', $this->classA->id);
+
+        // Assert percentage sorting: Bob (92.5%) then Alice (90.0%)
+        $reportData = $test->get('reportData');
+        $this->assertEquals('Bob Student', $reportData[0]['student_name']);
+        $this->assertEquals('Alice Student', $reportData[1]['student_name']);
+
+        // Sort by Written exam category (cat1) descending: Alice (100) then Bob (90)
+        $test->call('sortBy', 'category_' . $cat1->id);
+        $reportData = $test->get('reportData');
+        $this->assertEquals('Alice Student', $reportData[0]['student_name']);
+        $this->assertEquals('Bob Student', $reportData[1]['student_name']);
+
+        // Sort by Written exam category (cat1) ascending: Bob (90) then Alice (100)
+        $test->call('sortBy', 'category_' . $cat1->id);
+        $reportData = $test->get('reportData');
+        $this->assertEquals('Bob Student', $reportData[0]['student_name']);
+        $this->assertEquals('Alice Student', $reportData[1]['student_name']);
+
+        // Test export CSV
+        $response = $test->call('export');
+        $response->assertStatus(200);
+        
+        // Assert download headers and CSV content
+        $downloadFile = $response->effects['download'] ?? null;
+        $this->assertNotNull($downloadFile);
+        $this->assertStringContainsString('تقرير_الامتحانات_', $downloadFile['name']);
+    }
 }
