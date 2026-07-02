@@ -84,7 +84,7 @@ class ScoringService
             $activityScoresList = $enrollmentActivities->map(function ($ae) {
                 return $this->calculateActivityEnrollmentScore($ae)['final'];
             });
-            $activityScore = $activityScoresList->average() ?? 0;
+            $activityScore = $activityScoresList->max() ?? 0;
         }
 
         $behaviorLogs = $enrollment->relationLoaded('behaviorLogs')
@@ -178,9 +178,15 @@ class ScoringService
         $evalScore = \App\Models\ActivityScore::where('activity_enrollment_id', $ae->id)->avg('score') ?? 0;
 
         // 4. Final Weighted Score
-        $wAttendance = $activity->weight_attendance ?? 20;
-        $wTasks = $activity->weight_tasks ?? 30;
-        $wEvaluation = $activity->weight_evaluation ?? 50;
+        static $activityRules = [];
+        if (!isset($activityRules[$activity->season_id])) {
+            $activityRules[$activity->season_id] = \App\Models\ActivityScoringRule::where('season_id', $activity->season_id)->first();
+        }
+        $rule = $activityRules[$activity->season_id];
+
+        $wAttendance = $rule ? $rule->weight_attendance : ($activity->weight_attendance ?? 20);
+        $wTasks = $rule ? $rule->weight_tasks : ($activity->weight_tasks ?? 30);
+        $wEvaluation = $rule ? $rule->weight_evaluation : ($activity->weight_evaluation ?? 50);
 
         $final = ($attScore * ($wAttendance / 100)) + ($tasksScore * ($wTasks / 100)) + ($evalScore * ($wEvaluation / 100));
 
