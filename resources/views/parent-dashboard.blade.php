@@ -576,7 +576,7 @@
                                                                  </span>
                                                                  <span class="text-[11px] font-bold px-2.5 py-1 rounded-lg"
                                                                        style="background: rgba(14,165,233,0.06); border: 1px solid rgba(14,165,233,0.15); color: #0ea5e9;">
-                                                                     🎯 التقييم: @if($actEnroll->scores->count() > 0) {{ round($actScores['evaluation']) }}% @else لم يتم التقييم @endif
+                                                                     🎯 التقييم النهائي: @if($actEnroll->scores->count() > 0) {{ round($actScores['evaluation']) }}% @else -- @endif
                                                                  </span>
                                                              </div>
                                                          </div>
@@ -588,7 +588,7 @@
                                              </div>
                                          @else
                                              <div class="text-center py-8 bg-gray-50/50 rounded-2xl border border-dashed border-gray-200 text-gray-400 text-xs">الطفل غير مشترك في أي أنشطة بعد.</div>
-                                         @endif�تم التقييم</span>
+                                         @endif�تم التقييم</span>
                                                              @endif
                                                          </div>
                                                      </div>

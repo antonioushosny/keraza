@@ -319,7 +319,7 @@
                                             </span>
                                             <span class="text-[11px] font-bold px-2.5 py-1 rounded-lg"
                                                   style="background: rgba(14,165,233,0.06); border: 1px solid rgba(14,165,233,0.15); color: #0ea5e9;">
-                                                🎯 التقييم: @if($ae->scores->count() > 0) {{ round($actScores['evaluation']) }}% @else لم يتم التقييم @endif
+                                                🎯 التقييم النهائي: @if($ae->scores->count() > 0) {{ round($actScores['evaluation']) }}% @else -- @endif
                                             </span>
                                         </div>
                                     </div>
