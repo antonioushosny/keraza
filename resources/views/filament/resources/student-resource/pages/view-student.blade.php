@@ -295,28 +295,40 @@
                     </h3>
                 </div>
                 @if($enrollment->activityEnrollments->count() > 0)
+                    @php
+                        $scoringService = app(App\Services\ScoringService::class);
+                    @endphp
                     <div>
                         @foreach($enrollment->activityEnrollments as $ae)
+                            @php
+                                $actScores = $scoringService->calculateActivityEnrollmentScore($ae);
+                            @endphp
                             <div class="px-6 py-4 hover:bg-gray-50 dark:hover:bg-white/5 transition"
                                  style="border-bottom: 1px solid rgba(156,163,175,0.08);">
                                 <div class="flex items-center justify-between">
-                                    <span class="text-sm font-bold text-gray-800 dark:text-gray-200">{{ $ae->activity?->title ?? 'نشاط' }}</span>
+                                    <div>
+                                        <span class="text-sm font-bold text-gray-800 dark:text-gray-200">{{ $ae->activity?->title ?? 'نشاط' }}</span>
+                                        <div class="flex flex-wrap gap-2 mt-2">
+                                            <span class="text-[11px] font-bold px-2.5 py-1 rounded-lg"
+                                                  style="background: rgba(16,185,129,0.06); border: 1px solid rgba(16,185,129,0.15); color: #10b981;">
+                                                📅 الحضور: {{ round($actScores['attendance']) }}%
+                                            </span>
+                                            <span class="text-[11px] font-bold px-2.5 py-1 rounded-lg"
+                                                  style="background: rgba(99,102,241,0.06); border: 1px solid rgba(99,102,241,0.15); color: #6366f1;">
+                                                📝 المهام: {{ round($actScores['tasks']) }}%
+                                            </span>
+                                            <span class="text-[11px] font-bold px-2.5 py-1 rounded-lg"
+                                                  style="background: rgba(14,165,233,0.06); border: 1px solid rgba(14,165,233,0.15); color: #0ea5e9;">
+                                                🎯 التقييم: @if($ae->scores->count() > 0) {{ round($actScores['evaluation']) }}% @else لم يتم التقييم @endif
+                                            </span>
+                                        </div>
+                                    </div>
                                     <div class="flex items-center gap-2">
-                                        @if($ae->scores->count() > 0)
-                                            <span class="text-sm font-black" style="color: #0ea5e9;">{{ round($ae->scores->avg('score'), 1) }}%</span>
-                                        @else
-                                            <span class="text-xs text-gray-400 dark:text-gray-500">لم يتم التقييم</span>
-                                        @endif
-                                        <span class="text-xs font-bold px-2 py-0.5 rounded-lg"
-                                              style="{{ $ae->status === 'active'
-                                                  ? 'background: rgba(16,185,129,0.1); color: #10b981;'
-                                                  : 'background: rgba(156,163,175,0.1); color: #9ca3af;' }}">
-                                            {{ $ae->status === 'active' ? 'نشط' : $ae->status }}
-                                        </span>
+                                        <span class="text-sm font-black" style="color: #0ea5e9;">{{ round($actScores['final']) }}%</span>
                                     </div>
                                 </div>
                                 @if($ae->scores->count() > 1)
-                                    <div class="flex flex-wrap gap-1.5 mt-2">
+                                    <div class="flex flex-wrap gap-1.5 mt-2 pt-2 border-t border-dashed border-gray-100 dark:border-white/5">
                                         @foreach($ae->scores as $i => $sc)
                                             <span class="text-[10px] font-bold px-2 py-0.5 rounded"
                                                   style="background: rgba(14,165,233,0.08); border: 1px solid rgba(14,165,233,0.15); color: #0ea5e9;">

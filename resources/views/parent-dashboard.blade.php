@@ -553,34 +553,42 @@
                                          @endif
                                      </div>
 
-                                     {{-- Activities Tab --}}
-                                     <div x-show="activeTab === 'activities'" class="space-y-4">
-                                         <div class="px-2 py-1">
-                                             <h4 class="font-bold text-gray-800 text-sm flex items-center gap-1.5">
-                                                 <span class="w-1.5 h-4 rounded-full bg-sky-500"></span>
-                                                 الأنشطة والمسابقات المشترك بها الطفل:
-                                             </h4>
-                                         </div>
-                                         @if($enrollment->activityEnrollments->count() > 0)
+                                     {{-- Activities Tab -                                         @if($enrollment->activityEnrollments->count() > 0)
+                                             @php
+                                                 $scoringService = app(App\Services\ScoringService::class);
+                                             @endphp
                                              <div class="bg-white border border-gray-200/60 rounded-2xl overflow-hidden shadow-sm">
                                                  @foreach($enrollment->activityEnrollments as $actEnroll)
                                                      @php
-                                                         $isQualified = $actEnroll->status === 'qualified';
-                                                         $statusBadge = $isQualified ? 'background: rgba(16,185,129,0.1); color: #10b981;' : 'background: rgba(14,165,233,0.1); color: #0ea5e9;';
-                                                         $scoreVal = $actEnroll->scores->avg('score') ?? 0;
+                                                         $actScores = $scoringService->calculateActivityEnrollmentScore($actEnroll);
                                                      @endphp
                                                      <div class="flex items-center justify-between px-5 py-4 hover:bg-gray-50 transition" style="border-bottom: 1px solid rgba(156,163,175,0.08);">
-                                                         <div class="flex items-center gap-2.5">
-                                                             <span class="text-sm font-bold text-gray-800">{{ $actEnroll->activity?->title }}</span>
-                                                             <span class="text-[10px] font-black px-2 py-0.5 rounded-lg" style="{{ $statusBadge }}">
-                                                                 {{ $isQualified ? 'مؤهل' : 'مشترك' }}
-                                                             </span>
+                                                         <div>
+                                                             <span class="text-sm font-bold text-gray-800 block">{{ $actEnroll->activity?->title }}</span>
+                                                             <div class="flex flex-wrap gap-2 mt-2">
+                                                                 <span class="text-[11px] font-bold px-2.5 py-1 rounded-lg"
+                                                                       style="background: rgba(16,185,129,0.06); border: 1px solid rgba(16,185,129,0.15); color: #10b981;">
+                                                                     📅 الحضور: {{ round($actScores['attendance']) }}%
+                                                                 </span>
+                                                                 <span class="text-[11px] font-bold px-2.5 py-1 rounded-lg"
+                                                                       style="background: rgba(99,102,241,0.06); border: 1px solid rgba(99,102,241,0.15); color: #6366f1;">
+                                                                     📝 المهام: {{ round($actScores['tasks']) }}%
+                                                                 </span>
+                                                                 <span class="text-[11px] font-bold px-2.5 py-1 rounded-lg"
+                                                                       style="background: rgba(14,165,233,0.06); border: 1px solid rgba(14,165,233,0.15); color: #0ea5e9;">
+                                                                     🎯 التقييم: @if($actEnroll->scores->count() > 0) {{ round($actScores['evaluation']) }}% @else لم يتم التقييم @endif
+                                                                 </span>
+                                                             </div>
                                                          </div>
                                                          <div class="flex items-center gap-2">
-                                                             @if($scoreVal > 0)
-                                                                 <span class="text-sm font-black text-amber-600">{{ round($scoreVal) }}%</span>
-                                                             @else
-                                                                 <span class="text-xs text-gray-400">لم يتم التقييم</span>
+                                                             <span class="text-sm font-black text-amber-600">{{ round($actScores['final']) }}%</span>
+                                                         </div>
+                                                     </div>
+                                                 @endforeach
+                                             </div>
+                                         @else
+                                             <div class="text-center py-8 bg-gray-50/50 rounded-2xl border border-dashed border-gray-200 text-gray-400 text-xs">الطفل غير مشترك في أي أنشطة بعد.</div>
+                                         @endif�تم التقييم</span>
                                                              @endif
                                                          </div>
                                                      </div>
