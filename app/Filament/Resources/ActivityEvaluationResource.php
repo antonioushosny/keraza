@@ -2,32 +2,39 @@
 
 namespace App\Filament\Resources;
 
-use App\Filament\Resources\ActivityTaskResource\Pages;
-use App\Models\ActivityTask;
-use App\Models\ActivityEnrollment;
-use App\Models\ActivityTaskScore;
+use App\Filament\Resources\ActivityEvaluationResource\Pages;
+use App\Models\ActivityEvaluation;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Builder;
 
-class ActivityTaskResource extends Resource
+class ActivityEvaluationResource extends Resource
 {
-    protected static ?string $model = ActivityTask::class;
-
-    protected static ?string $navigationIcon = 'heroicon-o-clipboard-document-check';
-
-    protected static ?string $modelLabel = 'مهمة نشاط';
-
-    protected static ?string $pluralModelLabel = 'مهام الأنشطة';
-
+    protected static ?string $model = ActivityEvaluation::class;
+    protected static ?string $navigationIcon = 'heroicon-o-star';
+    protected static ?string $modelLabel = 'تقييم نشاط نهائي';
+    protected static ?string $pluralModelLabel = 'التقييمات النهائية للأنشطة';
     protected static ?string $navigationGroup = 'الأنشطة';
-
-    protected static ?int $navigationSort = 2;
+    protected static ?int $navigationSort = 3;
 
     public static function canViewAny(): bool
+    {
+        return auth()->user()?->hasAnyRole(['super_admin', 'activity_admin']) ?? false;
+    }
+
+    public static function canCreate(): bool
+    {
+        return auth()->user()?->hasAnyRole(['super_admin', 'activity_admin']) ?? false;
+    }
+
+    public static function canEdit($record): bool
+    {
+        return auth()->user()?->hasAnyRole(['super_admin', 'activity_admin']) ?? false;
+    }
+
+    public static function canDelete($record): bool
     {
         return auth()->user()?->hasAnyRole(['super_admin', 'activity_admin']) ?? false;
     }
@@ -41,8 +48,8 @@ class ActivityTaskResource extends Resource
             }
 
             $studentName = '';
-            if ($record && $record->enrollment?->enrollment?->student) {
-                $studentName = $record->enrollment->enrollment->student->full_name;
+            if ($record && $record->activityEnrollment?->enrollment?->student) {
+                $studentName = $record->activityEnrollment->enrollment->student->full_name;
             } else {
                 $studentName = $get('student_name') ?? '';
             }
@@ -60,57 +67,74 @@ class ActivityTaskResource extends Resource
 
         return $form
             ->schema([
-                Forms\Components\Section::make('بيانات المهمة')
-                    ->schema([
-                        Forms\Components\Select::make('activity_id')
-                            ->label('النشاط')
-                            ->relationship(
-                                name: 'activity',
-                                titleAttribute: 'title',
-                                modifyQueryUsing: fn ($query) => auth()->user()->hasRole('super_admin')
-                                    ? $query
-                                    : $query->whereIn('id', auth()->user()->assignedActivities->pluck('id'))
-                            )
-                            ->required()
-                            ->searchable()
-                            ->preload()
-                            ->live()
-                            ->afterStateUpdated(function ($state, Forms\Set $set) {
-                                if (!$state) return;
+                Forms\Components\Select::make('activity_id')
+                    ->label('النشاط')
+                    ->options(function ($record) {
+                        $query = \App\Models\Activity::query();
+                        
+                        $activeSeason = \App\Models\Season::active();
+                        if ($activeSeason) {
+                            $query->where('season_id', $activeSeason->id);
+                        }
 
-                                $enrollments = ActivityEnrollment::where('activity_id', $state)
-                                    // ->where('status', 'qualified')
-                                    ->with('enrollment.student')
-                                    ->get()
-                                    ->sortBy(fn ($e) => $e->enrollment?->student?->full_name ?? '');
+                        if (!auth()->user()->hasRole('super_admin')) {
+                            $query->whereIn('id', auth()->user()->assignedActivities->pluck('id'));
+                        }
 
-                                $scores = $enrollments->map(fn ($enrollment) => [
-                                    'activity_enrollment_id' => $enrollment->id,
-                                    'student_name' => $enrollment->enrollment->student->full_name ?? '—',
-                                    'score' => 0,
-                                ])->toArray();
+                        // Prevent duplicate evaluations (only show activities without an evaluation)
+                        $query->where(function ($q) use ($record) {
+                            $q->whereNotExists(function ($sub) {
+                                $sub->selectRaw('1')
+                                    ->from('activity_evaluations')
+                                    ->whereColumn('activity_evaluations.activity_id', 'activities.id');
+                            });
+                            if ($record && $record->activity_id) {
+                                $q->orWhere('id', $record->activity_id);
+                            }
+                        });
 
-                                $set('taskScores', $scores);
-                            }),
-                        Forms\Components\TextInput::make('title')
-                            ->label('عنوان المهمة')
-                            ->required()
-                            ->maxLength(255),
-                        Forms\Components\TextInput::make('max_score')
-                            ->label('الدرجة النهائية')
-                            ->numeric()
-                            ->default(100)
-                            ->required(),
-                        Forms\Components\DatePicker::make('date')
-                            ->label('التاريخ')
-                            ->required()
-                            ->default(now()),
-                        Forms\Components\Textarea::make('notes')
-                            ->label('ملاحظات')
-                            ->columnSpanFull(),
-                    ])->columns(2),
+                        return $query->pluck('title', 'id');
+                    })
+                    ->required()
+                    ->searchable()
+                    ->preload()
+                    ->disabled(fn ($record) => $record !== null)
+                    ->live()
+                    ->afterStateUpdated(function ($state, Forms\Set $set) {
+                        if (!$state) return;
 
-                Forms\Components\Section::make('رصد درجات المهمة')
+                        $enrollments = \App\Models\ActivityEnrollment::where('activity_id', $state)
+                            ->with('enrollment.student')
+                            ->get()
+                            ->sortBy(fn ($ae) => $ae->enrollment?->student?->full_name);
+
+                        $scores = $enrollments->map(fn ($ae) => [
+                            'activity_enrollment_id' => $ae->id,
+                            'student_name' => $ae->enrollment?->student?->full_name ?? '—',
+                            'raw_score' => 0,
+                            'notes' => null,
+                        ])->toArray();
+
+                        $set('scores', $scores);
+                    }),
+
+                Forms\Components\TextInput::make('max_score')
+                    ->label('الدرجة النهائية (من كان)')
+                    ->numeric()
+                    ->required()
+                    ->default(100)
+                    ->live(),
+
+                Forms\Components\DatePicker::make('date')
+                    ->label('التاريخ')
+                    ->required()
+                    ->default(now()),
+
+                Forms\Components\Textarea::make('notes')
+                    ->label('ملاحظات عامة')
+                    ->columnSpanFull(),
+
+                Forms\Components\Section::make('رصد تقييمات المخدومين')
                     ->schema([
                         Forms\Components\TextInput::make('student_search')
                             ->label('بحث بالاسم')
@@ -139,7 +163,7 @@ class ActivityTaskResource extends Resource
                                 </div>
                             ')),
 
-                        Forms\Components\Repeater::make('taskScores')
+                        Forms\Components\Repeater::make('scores')
                             ->relationship()
                             ->schema([
                                 Forms\Components\Grid::make(12)
@@ -149,17 +173,19 @@ class ActivityTaskResource extends Resource
                                         Forms\Components\Placeholder::make('student_name')
                                             ->hiddenLabel()
                                             ->content(function ($record, $get) {
-                                                if ($record && $record->enrollment?->enrollment?->student) {
-                                                    return $record->enrollment->enrollment->student->full_name;
+                                                if ($record && $record->activityEnrollment?->enrollment?->student) {
+                                                    return $record->activityEnrollment->enrollment->student->full_name;
                                                 }
                                                 return $get('student_name') ?? '—';
                                             })
                                             ->columnSpan(8),
-                                        Forms\Components\TextInput::make('score')
+                                        Forms\Components\TextInput::make('raw_score')
                                             ->hiddenLabel()
                                             ->numeric()
                                             ->required()
                                             ->default(0)
+                                            ->minValue(0)
+                                            ->maxValue(fn (Forms\Get $get) => $get('../../max_score') ?? 100)
                                             ->columnSpan(4),
                                     ])
                                     ->extraAttributes(function ($get, $record) use ($shouldHide) {
@@ -175,7 +201,8 @@ class ActivityTaskResource extends Resource
                             ->deletable(false)
                             ->reorderable(false)
                             ->hiddenLabel(),
-                    ]),
+                    ])
+                    ->columnSpanFull(),
             ]);
     }
 
@@ -183,12 +210,9 @@ class ActivityTaskResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('title')
-                    ->label('عنوان المهمة')
-                    ->searchable()
-                    ->sortable(),
                 Tables\Columns\TextColumn::make('activity.title')
                     ->label('النشاط')
+                    ->searchable()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('max_score')
                     ->label('الدرجة النهائية')
@@ -200,10 +224,7 @@ class ActivityTaskResource extends Resource
             ])
             ->defaultSort('date', 'desc')
             ->filters([
-                Tables\Filters\SelectFilter::make('activity_id')
-                    ->label('النشاط')
-                    ->relationship('activity', 'title')
-                    ->preload(),
+                //
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
@@ -230,20 +251,20 @@ class ActivityTaskResource extends Resource
                             fputcsv($file, array_values($headers));
 
                             foreach ($enrollments as $ae) {
-                                $existingScore = \App\Models\ActivityTaskScore::where('activity_task_id', $record->id)
+                                $existingScore = \App\Models\ActivityScore::where('activity_evaluation_id', $record->id)
                                     ->where('activity_enrollment_id', $ae->id)
                                     ->first();
 
                                 fputcsv($file, [
                                     $ae->enrollment?->student?->code ?? '',
                                     $ae->enrollment?->student?->full_name ?? '',
-                                    $existingScore ? $existingScore->score : 0,
+                                    $existingScore ? $existingScore->raw_score : 0,
                                 ]);
                             }
                             fclose($file);
                         };
 
-                        $fileName = 'activity_task_scores_' . str_replace(' ', '_', $record->title) . '.csv';
+                        $fileName = 'activity_evaluation_scores_' . str_replace(' ', '_', $record->activity->title) . '.csv';
                         return response()->stream($callback, 200, [
                             'Content-Type' => 'text/csv; charset=utf-8',
                             'Content-Disposition' => 'attachment; filename="' . $fileName . '"',
@@ -297,7 +318,7 @@ class ActivityTaskResource extends Resource
                             if (is_numeric($studentCode)) {
                                 $studentCode = strval(intval($studentCode));
                             }
-                            $score = floatval(trim($row[2]));
+                            $rawScore = floatval(trim($row[2]));
 
                             $student = \App\Models\Student::where('code', $studentCode)->first();
                             if (!$student) {
@@ -323,11 +344,11 @@ class ActivityTaskResource extends Resource
                                 continue;
                             }
 
-                            \App\Models\ActivityTaskScore::updateOrCreate([
-                                'activity_task_id' => $record->id,
+                            \App\Models\ActivityScore::updateOrCreate([
+                                'activity_evaluation_id' => $record->id,
                                 'activity_enrollment_id' => $activityEnrollment->id,
                             ], [
-                                'score' => $score,
+                                'raw_score' => $rawScore,
                             ]);
 
                             $successCount++;
@@ -348,27 +369,46 @@ class ActivityTaskResource extends Resource
             ]);
     }
 
-    public static function getEloquentQuery(): Builder
+    public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
     {
         $query = parent::getEloquentQuery();
-        if (auth()->user()->hasRole('super_admin')) {
+        $user = auth()->user();
+        $activeSeason = \App\Models\Season::active();
+
+        if ($activeSeason) {
+            $query->whereHas('activity', function ($q) use ($activeSeason) {
+                $q->where('season_id', $activeSeason->id);
+            });
+        }
+
+        if (!$user) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        if ($user->hasRole('super_admin')) {
             return $query;
         }
 
-        if (auth()->user()->hasRole('activity_admin')) {
-            $assignedActivityIds = auth()->user()->assignedActivities->pluck('id');
-            return $query->whereIn('activity_id', $assignedActivityIds);
-        }
+        return $query->where(function ($subQuery) use ($user) {
+            if ($user->hasRole('activity_admin')) {
+                $subQuery->orWhereIn('activity_id', $user->assignedActivities->pluck('id'));
+            }
 
-        return $query->whereRaw('1 = 0');
+            if ($user->hasAnyRole(['class_admin', 'class_servant'])) {
+                $assignedClassIds = $user->assignedClasses->pluck('id');
+                $subQuery->orWhereHas('activity.enrollments.enrollment', function ($q) use ($assignedClassIds) {
+                    $q->whereIn('class_id', $assignedClassIds);
+                });
+            }
+        });
     }
 
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListActivityTasks::route('/'),
-            'create' => Pages\CreateActivityTask::route('/create'),
-            'edit' => Pages\EditActivityTask::route('/{record}/edit'),
+            'index' => Pages\ListActivityEvaluations::route('/'),
+            'create' => Pages\CreateActivityEvaluation::route('/create'),
+            'edit' => Pages\EditActivityEvaluation::route('/{record}/edit'),
         ];
     }
 }

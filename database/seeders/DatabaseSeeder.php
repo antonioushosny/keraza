@@ -39,7 +39,7 @@ class DatabaseSeeder extends Seeder
         
         // Clear existing data
         $tables = [
-            'student_badges', 'badges', 'behavior_logs', 'activity_scores', 
+            'student_badges', 'badges', 'behavior_logs', 'activity_scores', 'activity_evaluations',
             'activity_enrollments', 'activities', 'activity_types', 
             'memorization_scores', 'memorization_items', 'exam_scores', 
             'exams', 'exam_categories', 'attendance', 
@@ -171,12 +171,21 @@ class DatabaseSeeder extends Seeder
 
                 // Activities
                 $activities = [];
+                $evaluations = [];
                 foreach ($actTypes as $type) {
-                    $activities[] = Activity::create([
+                    $act = Activity::create([
                         'season_id' => $season->id,
                         'type_id' => $type->id,
                         'title' => 'مسابقة ' . $type->name,
                         'min_score_to_qualify' => 60,
+                    ]);
+                    $activities[] = $act;
+                    
+                    $evaluations[$act->id] = \App\Models\ActivityEvaluation::create([
+                        'activity_id' => $act->id,
+                        'max_score' => 100,
+                        'date' => now(),
+                        'notes' => 'تقييم عام للنشاط',
                     ]);
                 }
 
@@ -235,7 +244,8 @@ class DatabaseSeeder extends Seeder
                     ]);
                     ActivityScore::create([
                         'activity_enrollment_id' => $actEnroll->id,
-                        'score' => rand(75, 100),
+                        'activity_evaluation_id' => $evaluations[$act->id]->id,
+                        'raw_score' => rand(75, 100),
                     ]);
 
                     // Behavior
