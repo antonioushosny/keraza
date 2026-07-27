@@ -26,6 +26,7 @@ $defineRoutes = function ($prefix = '') {
 
         Route::middleware(['auth:admin'])->group(function () {
             Route::get('/admin/students/import-template', [\App\Http\Controllers\StudentImportController::class, 'downloadTemplate'])->name('admin.students.import-template');
+            Route::get('/admin/activity-enrollments/import-template', [\App\Http\Controllers\ActivityEnrollmentImportController::class, 'downloadTemplate'])->name('admin.activity-enrollments.import-template');
         });
     });
 };
