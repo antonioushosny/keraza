@@ -201,6 +201,244 @@ class ActivityAttendanceSessionResource extends Resource
             ->actions([
                 Tables\Actions\EditAction::make(),
             ])
+            ->headerActions([
+                Tables\Actions\Action::make('export_activity_template')
+                    ->label('تحميل نموذج الحضور (CSV)')
+                    ->icon('heroicon-o-arrow-down-tray')
+                    ->color('gray')
+                    ->form([
+                        Forms\Components\Select::make('activity_id')
+                            ->label('النشاط')
+                            ->options(function () {
+                                $query = \App\Models\Activity::query();
+                                if (!auth()->user()->hasRole('super_admin')) {
+                                    $query->whereIn('id', auth()->user()->assignedActivities->pluck('id'));
+                                }
+                                return $query->pluck('title', 'id')->toArray();
+                            })
+                            ->required()
+                            ->searchable()
+                            ->placeholder('اختر النشاط'),
+                        Forms\Components\DatePicker::make('date')
+                            ->label('التاريخ')
+                            ->required()
+                            ->default(now()),
+                    ])
+                    ->action(function (array $data) {
+                        $activityId = $data['activity_id'];
+                        $date = $data['date'];
+
+                        $enrollments = ActivityEnrollment::where('activity_id', $activityId)
+                            ->with('enrollment.student')
+                            ->get()
+                            ->sortBy(fn ($e) => $e->enrollment?->student?->full_name ?? '');
+
+                        $session = ActivityAttendanceSession::where('activity_id', $activityId)
+                            ->whereDate('date', $date)
+                            ->first();
+
+                        $existingAttendances = [];
+                        if ($session) {
+                            $existingAttendances = ActivityAttendance::where('activity_attendance_session_id', $session->id)
+                                ->pluck('status', 'activity_enrollment_id')
+                                ->toArray();
+                        }
+
+                        $headers = [
+                            'student_code' => 'كود المخدوم',
+                            'student_name' => 'اسم المخدوم',
+                            'date'         => 'التاريخ',
+                            'status'       => 'الحالة (present, absent, excused)',
+                        ];
+
+                        $callback = function () use ($enrollments, $headers, $date, $existingAttendances) {
+                            $file = fopen('php://output', 'w');
+                            fprintf($file, chr(0xEF).chr(0xBB).chr(0xBF));
+                            fputcsv($file, array_values($headers));
+
+                            foreach ($enrollments as $enrollment) {
+                                $student = $enrollment->enrollment?->student;
+                                if (!$student) continue;
+                                $status = $existingAttendances[$enrollment->id] ?? 'absent';
+                                fputcsv($file, [
+                                    $student->code,
+                                    $student->full_name,
+                                    $date,
+                                    $status,
+                                ]);
+                            }
+                            fclose($file);
+                        };
+
+                        $activity = \App\Models\Activity::find($activityId);
+                        $activitySlug = $activity ? \Illuminate\Support\Str::slug($activity->title, '_') : $activityId;
+                        $fileName = 'activity_attendance_' . $activitySlug . '_' . $date . '.csv';
+
+                        return response()->stream($callback, 200, [
+                            'Content-Type'        => 'text/csv; charset=utf-8',
+                            'Content-Disposition' => 'attachment; filename="' . $fileName . '"',
+                        ]);
+                    }),
+
+                Tables\Actions\Action::make('import_activity_attendance')
+                    ->label('استيراد حضور (CSV)')
+                    ->icon('heroicon-o-arrow-up-tray')
+                    ->color('primary')
+                    ->form([
+                        Forms\Components\Select::make('activity_id')
+                            ->label('النشاط')
+                            ->options(function () {
+                                $query = \App\Models\Activity::query();
+                                if (!auth()->user()->hasRole('super_admin')) {
+                                    $query->whereIn('id', auth()->user()->assignedActivities->pluck('id'));
+                                }
+                                return $query->pluck('title', 'id')->toArray();
+                            })
+                            ->required()
+                            ->searchable()
+                            ->placeholder('اختر النشاط'),
+                        Forms\Components\FileUpload::make('file')
+                            ->label('اختر ملف CSV')
+                            ->required()
+                            ->acceptedFileTypes(['text/csv', 'application/vnd.ms-excel', 'text/plain'])
+                            ->helperText('استخدم الملف المُحمَّل من زر "تحميل نموذج الحضور" لضمان التنسيق الصحيح.'),
+                    ])
+                    ->action(function (array $data) {
+                        $selectedActivityId = $data['activity_id'];
+
+                        $fileState = $data['file'];
+                        $fileName = is_array($fileState) ? (\Illuminate\Support\Arr::first($fileState) ?? '') : $fileState;
+                        $filePath = storage_path('app/public/' . $fileName);
+
+                        if (!file_exists($filePath)) {
+                            \Filament\Notifications\Notification::make()
+                                ->title('فشل الاستيراد')
+                                ->body('لم يتم العثور على الملف المرفوع.')
+                                ->danger()
+                                ->send();
+                            return;
+                        }
+
+                        $file = fopen($filePath, 'r');
+
+                        // Strip BOM if present
+                        $bom = fread($file, 3);
+                        if ($bom !== chr(0xEF).chr(0xBB).chr(0xBF)) {
+                            rewind($file);
+                        }
+
+                        // Skip header row
+                        fgetcsv($file);
+
+                        $successCount = 0;
+                        $errorsCount  = 0;
+
+                        \Illuminate\Support\Facades\DB::transaction(function () use ($file, $selectedActivityId, &$successCount, &$errorsCount) {
+                            $sessions = [];
+
+                            while (($row = fgetcsv($file)) !== false) {
+                                if (count($row) < 4) continue;
+
+                                $studentCode = trim($row[0]);
+                                if (str_ends_with($studentCode, '.0')) {
+                                    $studentCode = substr($studentCode, 0, -2);
+                                }
+                                if (is_numeric($studentCode)) {
+                                    $studentCode = strval(intval($studentCode));
+                                }
+
+                                $dateStr = trim($row[2]);
+                                $status  = trim($row[3]);
+
+                                // Normalize Arabic numerals in date
+                                $arabic = ['٠','١','٢','٣','٤','٥','٦','٧','٨','٩'];
+                                $num    = ['0','1','2','3','4','5','6','7','8','9'];
+                                $dateStr = str_replace($arabic, $num, $dateStr);
+                                $cleanedDate = str_replace(['.', '/'], '-', $dateStr);
+
+                                $date = null;
+                                $parsedTime = strtotime($cleanedDate);
+                                if ($parsedTime !== false) {
+                                    $date = date('Y-m-d', $parsedTime);
+                                } elseif (preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $cleanedDate)) {
+                                    $date = $cleanedDate;
+                                }
+
+                                if (!$date) {
+                                    $errorsCount++;
+                                    continue;
+                                }
+
+                                if (!in_array($status, ['present', 'absent', 'excused'])) {
+                                    $status = 'absent';
+                                }
+
+                                // Find student by code
+                                $student = \App\Models\Student::where('code', $studentCode)->first();
+                                if (!$student) {
+                                    $errorsCount++;
+                                    continue;
+                                }
+
+                                $activeSeason = \App\Models\Season::active();
+                                if (!$activeSeason) {
+                                    $errorsCount++;
+                                    continue;
+                                }
+
+                                // Find student's season enrollment
+                                $seasonEnrollment = \App\Models\StudentSeasonEnrollment::where('student_id', $student->id)
+                                    ->where('season_id', $activeSeason->id)
+                                    ->first();
+
+                                if (!$seasonEnrollment) {
+                                    $errorsCount++;
+                                    continue;
+                                }
+
+                                // Find activity enrollment for this student in the selected activity
+                                $activityEnrollment = ActivityEnrollment::where('student_season_enrollment_id', $seasonEnrollment->id)
+                                    ->where('activity_id', $selectedActivityId)
+                                    ->first();
+
+                                if (!$activityEnrollment) {
+                                    $errorsCount++;
+                                    continue;
+                                }
+
+                                $sessionKey = $selectedActivityId . '_' . $date;
+
+                                if (!isset($sessions[$sessionKey])) {
+                                    $sessions[$sessionKey] = ActivityAttendanceSession::firstOrCreate([
+                                        'activity_id' => $selectedActivityId,
+                                        'date'        => $date,
+                                    ], [
+                                        'notes' => 'مستورد تلقائياً من شيت إكسيل',
+                                    ]);
+                                }
+
+                                $attendanceSession = $sessions[$sessionKey];
+
+                                ActivityAttendance::updateOrCreate([
+                                    'activity_attendance_session_id' => $attendanceSession->id,
+                                    'activity_enrollment_id'         => $activityEnrollment->id,
+                                ], [
+                                    'status' => $status,
+                                ]);
+
+                                $successCount++;
+                            }
+                        });
+
+                        fclose($file);
+
+                        \Filament\Notifications\Notification::make()
+                            ->title('اكتمل الاستيراد')
+                            ->body("تم بنجاح تسجيل حضور {$successCount} مخدوم. الأخطاء: {$errorsCount}")
+                            ->success()
+                            ->send();
+                    }),
+            ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
