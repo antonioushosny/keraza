@@ -6,6 +6,7 @@ use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\DB;
 use Spatie\Permission\Traits\HasRoles;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
@@ -26,6 +27,7 @@ class User extends Authenticatable implements FilamentUser
         'phone',
         'password',
         'type',
+        'status',
     ];
 
     /**
@@ -52,11 +54,37 @@ class User extends Authenticatable implements FilamentUser
 
     public function canAccessPanel(Panel $panel): bool
     {
+        if ($this->isSuspended()) {
+            return false;
+        }
+
         // Block parents from accessing the Filament admin panel.
         if ($this->hasRole('parent') && $this->roles()->count() === 1) {
             return false;
         }
         return $this->roles()->count() > 0;
+    }
+
+    public function isSuspended(): bool
+    {
+        return $this->status === 'suspended';
+    }
+
+    public function isActive(): bool
+    {
+        return $this->status === 'active';
+    }
+
+    public function suspend(): void
+    {
+        $this->update(['status' => 'suspended']);
+
+        DB::table('sessions')->where('user_id', $this->id)->delete();
+    }
+
+    public function activate(): void
+    {
+        $this->update(['status' => 'active']);
     }
 
     public function assignedClasses(): \Illuminate\Database\Eloquent\Relations\BelongsToMany

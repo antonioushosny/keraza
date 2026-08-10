@@ -106,6 +106,11 @@ class ParentResource extends Resource
                 Tables\Columns\TextColumn::make('students.full_name')
                     ->label('الأبناء')
                     ->listWithLineBreaks(),
+                Tables\Columns\TextColumn::make('status')
+                    ->label('الحالة')
+                    ->badge()
+                    ->formatStateUsing(fn (string $state): string => $state === 'suspended' ? 'موقوف' : 'نشط')
+                    ->color(fn (string $state): string => $state === 'suspended' ? 'danger' : 'success'),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('class')
@@ -127,6 +132,36 @@ class ParentResource extends Resource
                     ->visible(fn () => auth()->user()->hasRole('super_admin')),
             ])
             ->actions([
+                Tables\Actions\Action::make('suspend')
+                    ->label('إيقاف')
+                    ->icon('heroicon-o-lock-closed')
+                    ->color('danger')
+                    ->visible(fn ($record) => auth()->user()->hasRole('super_admin') && $record->isActive())
+                    ->requiresConfirmation()
+                    ->modalHeading('إيقاف ولي الأمر')
+                    ->modalDescription('سيتم تسجيل خروج ولي الأمر فورًا من كل الأجهزة، ولن يستطيع تسجيل الدخول مرة أخرى حتى يتم تفعيل حسابه مجددًا. هل أنت متأكد؟')
+                    ->modalSubmitActionLabel('نعم، إيقاف')
+                    ->action(function ($record) {
+                        $record->suspend();
+                        \Filament\Notifications\Notification::make()
+                            ->title('تم إيقاف الحساب')
+                            ->success()
+                            ->send();
+                    }),
+                Tables\Actions\Action::make('activate')
+                    ->label('تفعيل')
+                    ->icon('heroicon-o-lock-open')
+                    ->color('success')
+                    ->visible(fn ($record) => auth()->user()->hasRole('super_admin') && $record->isSuspended())
+                    ->requiresConfirmation()
+                    ->modalHeading('تفعيل ولي الأمر')
+                    ->action(function ($record) {
+                        $record->activate();
+                        \Filament\Notifications\Notification::make()
+                            ->title('تم تفعيل الحساب')
+                            ->success()
+                            ->send();
+                    }),
                 Tables\Actions\EditAction::make(),
             ])
             ->bulkActions([

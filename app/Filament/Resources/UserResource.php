@@ -94,11 +94,46 @@ class UserResource extends Resource
                 Tables\Columns\TextColumn::make('assignedClasses.name')
                     ->label('الفصول')
                     ->listWithLineBreaks(),
+                Tables\Columns\TextColumn::make('status')
+                    ->label('الحالة')
+                    ->badge()
+                    ->formatStateUsing(fn (string $state): string => $state === 'suspended' ? 'موقوف' : 'نشط')
+                    ->color(fn (string $state): string => $state === 'suspended' ? 'danger' : 'success'),
             ])
             ->filters([
                 //
             ])
             ->actions([
+                Tables\Actions\Action::make('suspend')
+                    ->label('إيقاف')
+                    ->icon('heroicon-o-lock-closed')
+                    ->color('danger')
+                    ->visible(fn ($record) => auth()->user()->hasRole('super_admin') && $record->isActive() && $record->id !== auth()->id())
+                    ->requiresConfirmation()
+                    ->modalHeading('إيقاف المستخدم')
+                    ->modalDescription('سيتم تسجيل خروج هذا المستخدم فورًا من كل الأجهزة، ولن يستطيع تسجيل الدخول مرة أخرى حتى يتم تفعيل حسابه مجددًا. هل أنت متأكد؟')
+                    ->modalSubmitActionLabel('نعم، إيقاف')
+                    ->action(function ($record) {
+                        $record->suspend();
+                        \Filament\Notifications\Notification::make()
+                            ->title('تم إيقاف المستخدم')
+                            ->success()
+                            ->send();
+                    }),
+                Tables\Actions\Action::make('activate')
+                    ->label('تفعيل')
+                    ->icon('heroicon-o-lock-open')
+                    ->color('success')
+                    ->visible(fn ($record) => auth()->user()->hasRole('super_admin') && $record->isSuspended())
+                    ->requiresConfirmation()
+                    ->modalHeading('تفعيل المستخدم')
+                    ->action(function ($record) {
+                        $record->activate();
+                        \Filament\Notifications\Notification::make()
+                            ->title('تم تفعيل المستخدم')
+                            ->success()
+                            ->send();
+                    }),
                 Tables\Actions\EditAction::make(),
             ])
             ->bulkActions([

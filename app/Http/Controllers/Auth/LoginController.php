@@ -23,6 +23,16 @@ class LoginController extends Controller
         $credentials['type'] = 'parent';
 
         if (Auth::attempt($credentials, $request->boolean('remember'))) {
+            if (auth()->user()->isSuspended()) {
+                Auth::logout();
+                $request->session()->invalidate();
+                $request->session()->regenerateToken();
+
+                return back()->withErrors([
+                    'phone' => 'تم إيقاف هذا الحساب. برجاء التواصل مع الإدارة.',
+                ])->onlyInput('phone');
+            }
+
             $request->session()->regenerate();
 
             // Redirect based on role
