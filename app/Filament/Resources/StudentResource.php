@@ -141,6 +141,10 @@ class StudentResource extends Resource
                 Tables\Columns\TextColumn::make('birth_date')
                     ->label('تاريخ الميلاد')
                     ->date(),
+                Tables\Columns\TextColumn::make('parent.phone')
+                    ->label('رقم الموبايل')
+                    ->copyable()
+                    ->copyMessage('تم نسخ رقم الموبايل'),
             ])
             ->defaultSort('full_name', 'asc')
             ->filters([
